@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Product Catalogue Visualizer</title>
+  <style>
+    :root {
+      --primary: #1877f2;
+      --primary-hover: #166fe5;
+      --bg: #f0f2f5;
+      --card-bg: #ffffff;
+      --text: #050505;
+      --text-muted: #65676b;
+      --border: #ced0d4;
+      --radius: 12px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      padding: 24px;
+    }
+
+    header {
+      max-width: 1200px;
+      margin: 0 auto 24px auto;
+      background: var(--card-bg);
+      padding: 24px;
+      border-radius: var(--radius);
+      box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+    }
+
+    h1 {
+      font-size: 1.5rem;
+      color: var(--primary);
+    }
+
+    .upload-area {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    input[type="file"] {
+      display: none;
+    }
+
+    .custom-file-upload {
+      background-color: var(--primary);
+      color: white;
+      padding: 10px 18px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 0.9rem;
+      transition: background 0.2s;
+    }
+
+    .custom-file-upload:hover {
+      background-color: var(--primary-hover);
+    }
+
+    .file-name {
+      font-size: 0.9rem;
+      color: var(--text-muted);
+    }
+
+    /* Dashboard Layout */
+    .dashboard {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 280px 1fr;
+      gap: 24px;
+    }
+
+    @media (max-width: 768px) {
+      .dashboard {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* Sidebar / Stats & Categories */
+    .sidebar {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .metric-box {
+      background: var(--card-bg);
+      padding: 20px;
+      border-radius: var(--radius);
+      box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+      text-align: center;
+    }
+
+    .metric-number {
+      font-size: 2.2rem;
+      font-weight: 700;
+      color: var(--primary);
+      line-height: 1.2;
+    }
+
+    .metric-label {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-top: 4px;
+    }
+
+    .filter-box {
+      background: var(--card-bg);
+      padding: 20px;
+      border-radius: var(--radius);
+      box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+    }
+
+    .filter-box h3 {
+      font-size: 1rem;
+      margin-bottom: 12px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .category-tree {
+      list-style: none;
+      font-size: 0.9rem;
+    }
+
+    .category-item {
+      padding: 6px 8px;
+      border-radius: 6px;
+      cursor: pointer;
+      color: var(--text);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 2px;
+    }
+
+    .category-item:hover {
+      background-color: var(--bg);
+    }
+
+    .category-item.active {
+      background-color: #e7f3ff;
+      color: var(--primary);
+      font-weight: 600;
+    }
+
+    .badge {
+      background: var(--bg);
+      padding: 2px 8px;
+      border-radius: 10px;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    .active .badge {
+      background: var(--primary);
+      color: white;
+    }
+
+    /* Subcategories indentation */
+    .depth-1 { margin-left: 12px; font-size: 0.85rem; }
+    .depth-2 { margin-left: 24px; font-size: 0.8rem; }
+
+    /* Products Grid */
+    .products-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      gap: 20px;
+      align-content: start;
+    }
+
+    .product-card {
+      background: var(--card-bg);
+      border-radius: var(--radius);
+      overflow: hidden;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+      display: flex;
+      flex-direction: column;
+      transition: transform 0.2s, box-shadow 0.2s;
+      position: relative;
+    }
+
+    .product-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+    }
+
+    .product-img-container {
+      width: 100%;
+      padding-top: 100%; /* 1:1 Aspect Ratio */
+      position: relative;
+      background-color: #f7f8fa;
+    }
+
+    .product-img {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .availability-tag {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      background: rgba(0, 0, 0, 0.6);
+      color: white;
+      font-size: 0.7rem;
+      padding: 4px 8px;
+      border-radius: 4px;
+      text-transform: uppercase;
+      font-weight: 600;
+      backdrop-filter: blur(4px);
+    }
+
+    .availability-tag.in-stock { background: rgba(46, 125, 50, 0.85); }
+
+    .product-info {
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      flex-grow: 1;
+      justify-content: space-between;
+    }
+
+    .product-brand {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+
+    .product-title {
+      font-size: 0.95rem;
+      font-weight: 600;
+      margin-bottom: 8px;
+      line-height: 1.3;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .product-category-path {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-bottom: 12px;
+    }
+
+    .price-row {
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+      margin-top: auto;
+      margin-bottom: 12px;
+    }
+
+    .sale-price {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: #e53935;
+    }
+
+    .original-price {
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      text-decoration: line-through;
+    }
+
+    .regular-price {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .btn-view {
+      display: block;
+      text-align: center;
+      background-color: #e7f3ff;
+      color: var(--primary);
+      text-decoration: none;
+      padding: 8px;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      transition: background 0.2s;
+    }
+
+    .btn-view:hover {
+      background-color: #dbeafe;
+    }
+
+    .empty-state {
+      grid-column: 1 / -1;
+      text-align: center;
+      padding: 64px 20px;
+      background: var(--card-bg);
+      border-radius: var(--radius);
+      color: var(--text-muted);
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>🛍️ Catalogue Visualizer</h1>
+    <div class="upload-area">
+      <span class="file-name" id="fileName">No file uploaded</span>
+      <label for="fileInput" class="custom-file-upload">Choose XML File</label>
+      <input type="file" id="fileInput" accept=".xml" />
+    </div>
+  </header>
+
+  <div class="dashboard">
+    <aside class="sidebar">
+      <div class="metric-box">
+        <div class="metric-number" id="totalCount">0</div>
+        <div class="metric-label">Total Products</div>
+      </div>
+
+      <div class="filter-box">
+        <h3>Categories</h3>
+        <ul class="category-tree" id="categoryTree">
+          <li class="category-item active" onclick="filterCategory('All')">
+            <span>All Products</span>
+            <span class="badge" id="badgeAll">0</span>
+          </li>
+          </ul>
+      </div>
+    </aside>
+
+    <main class="products-grid" id="productsGrid">
+      <div class="empty-state">
+        <h3>No products loaded</h3>
+        <p style="margin-top: 8px;">Please upload your XML product catalogue feed to begin visualization.</p>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    let allProducts = [];
+    let activeFilter = 'All';
+
+    // Handle file input
+    document.getElementById('fileInput').addEventListener('change', function(event) {
+      const file = event.target.files[0];
+      if (file) {
+        document.getElementById('fileName').textContent = file.name;
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          parseXMLFeed(e.target.result);
+        };
+        reader.readAsText(file);
+      }
+    });
+
+    // Parse native XML namespace elements
+    function getTagContent(item, tagNames) {
+      for (let name of tagNames) {
+        // Try exact name or namespace variations
+        let elements = item.getElementsByTagName(name);
+        if (!elements.length && name.includes(':')) {
+          elements = item.getElementsByTagNameNS("*", name.split(':')[1]);
+        }
+        if (elements.length > 0) {
+          return elements[0].textContent.trim();
+        }
+      }
+      return '';
+    }
+
+    function parseXMLFeed(xmlString) {
+      const parser = new DOMParser();
+      const xmlDoc = parser.parseFromString(xmlString, "text/xml");
+      const items = xmlDoc.getElementsByTagName("item");
+      
+      allProducts = [];
+      const categoryCounts = {};
+
+      for (let i = 0; i < items.length; i++) {
+        const item = items[i];
+        
+        const id = getTagContent(item, ['g:id', 'id']);
+        const title = getTagContent(item, ['g:title', 'title']);
+        const link = getTagContent(item, ['g:link', 'link']);
+        const imageLink = getTagContent(item, ['g:image_link', 'image_link']);
+        const price = getTagContent(item, ['g:price', 'price']);
+        const salePrice = getTagContent(item, ['g:sale_price', 'sale_price']);
+        const productType = getTagContent(item, ['g:product_type', 'product_type']);
+        const availability = getTagContent(item, ['g:availability', 'availability']) || 'in stock';
+        const brand = getTagContent(item, ['g:brand', 'brand']);
+
+        // Parse category hierarchy paths
+        // e.g., "Bags > Hand Bag" -> ["Bags", "Hand Bag"]
+        const categories = productType ? productType.split('>').map(c => c.trim()).filter(Boolean) : ['Uncategorized'];
+        
+        // Populate counts for full path indexing
+        let currentPath = '';
+        categories.forEach((cat, index) => {
+          currentPath += (index === 0 ? '' : ' > ') + cat;
+          categoryCounts[currentPath] = (categoryCounts[currentPath] || 0) + 1;
+        });
+
+        allProducts.push({
+          id,
+          title,
+          link,
+          imageLink,
+          price,
+          salePrice,
+          productType: categories.join(' > '),
+          categories,
+          availability,
+          brand
+        });
+      }
+
+      // Update UI Metrics
+      document.getElementById('totalCount').textContent = allProducts.length;
+      document.getElementById('badgeAll').textContent = allProducts.length;
+
+      buildCategoryTree(categoryCounts);
+      filterCategory('All');
+    }
+
+    function buildCategoryTree(counts) {
+      const treeContainer = document.getElementById('categoryTree');
+      // Reset items, keeping the 'All Products' base option
+      treeContainer.innerHTML = `
+        <li class="category-item active" onclick="filterCategory('All')">
+          <span>All Products</span>
+          <span class="badge" id="badgeAll">${allProducts.length}</span>
+        </li>
+      `;
+
+      // Sort paths to ensure parents come before children logically
+      const sortedPaths = Object.keys(counts).sort();
+
+      sortedPaths.forEach(path => {
+        const parts = path.split(' > ');
+        const depth = parts.length - 1; // 0 = Category, 1 = Subcategory, 2 = Sub-subcategory
+        const displayName = parts[parts.length - 1];
+
+        const li = document.createElement('li');
+        li.className = `category-item depth-${depth}`;
+        li.setAttribute('data-path', path);
+        li.onclick = () => filterCategory(path);
+        
+        li.innerHTML = `
+          <span>${displayName}</span>
+          <span class="badge">${counts[path]}</span>
+        `;
+        
+        treeContainer.appendChild(li);
+      });
+    }
+
+    function filterCategory(path) {
+      activeFilter = path;
+
+      // Update Active Sidebar Highlight
+      const items = document.querySelectorAll('.category-item');
+      items.forEach(item => {
+        if ((path === 'All' && item.getAttribute('onclick').includes('All')) || 
+            item.getAttribute('data-path') === path) {
+          item.classList.add('active');
+        } else {
+          item.classList.remove('active');
+        }
+      });
+
+      // Filter array items matching full tree strings
+      const filtered = path === 'All' ? allProducts : allProducts.filter(p => {
+        return p.productType === path || p.productType.startsWith(path + ' > ');
+      });
+
+      renderProducts(filtered);
+    }
+
+    function renderProducts(products) {
+      const grid = document.getElementById('productsGrid');
+      grid.innerHTML = '';
+
+      if (products.length === 0) {
+        grid.innerHTML = `
+          <div class="empty-state">
+            <h3>No matching items</h3>
+            <p style="margin-top: 8px;">Try selecting a different category filter.</p>
+          </div>
+        `;
+        return;
+      }
+
+      products.forEach(p => {
+        const card = document.createElement('div');
+        card.className = 'product-card';
+
+        // Check if item is actively on discount
+        const hasDiscount = p.salePrice && parseFloat(p.salePrice) < parseFloat(p.price);
+        
+        let priceHtml = '';
+        if (hasDiscount) {
+          priceHtml = `
+            <span class="sale-price">৳${p.salePrice}</span>
+            <span class="original-price">৳${p.price}</span>
+          `;
+        } else {
+          priceHtml = `<span class="regular-price">৳${p.price || 'N/A'}</span>`;
+        }
+
+        const availClass = p.availability.toLowerCase().includes('in stock') ? 'in-stock' : '';
+
+        card.innerHTML = `
+          <div class="product-img-container">
+            <img class="product-img" src="${p.imageLink}" alt="Product Image" loading="lazy" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\\'http://www.w3.org/2000/svg\\' width=\\'100\\' height=\\'100\\'><rect width=\\'100\\' height=\\'100\\' fill=\\'%23eee\\'/><text x=\\'50%\\' y=\\'50%\\' font-size=\\'12\\' text-anchor=\\'middle\\' fill=\\'%23aaa\\'>No Image</text></svg>'">
+            <span class="availability-tag ${availClass}">${p.availability}</span>
+          </div>
+          <div class="product-info">
+            <div>
+              ${p.brand ? `<div class="product-brand">${p.brand}</div>` : ''}
+              <div class="product-title" title="${p.title}">${p.title || 'Unnamed Product'}</div>
+              <div class="product-category-path">${p.productType.replace(/ > /g, ' • ')}</div>
+            </div>
+            <div>
+              <div class="price-row">
+                ${priceHtml}
+              </div>
+              <a href="${p.link}" target="_blank" class="btn-view" rel="noopener noreferrer">View Product ↗</a>
+            </div>
+          </div>
+        `;
+
+        grid.appendChild(card);
+      });
+    }
+  </script>
+</body>
+</html>
