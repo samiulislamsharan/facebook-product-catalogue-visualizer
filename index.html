@@ -3,7 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Product Catalogue Visualizer</title>
+  <title>Multi-Format Product Catalogue Visualizer</title>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <style>
     :root {
       --primary: #1877f2;
@@ -176,7 +177,6 @@
       color: white;
     }
 
-    /* Subcategories indentation */
     .depth-1 { margin-left: 12px; font-size: 0.85rem; }
     .depth-2 { margin-left: 24px; font-size: 0.8rem; }
 
@@ -206,7 +206,7 @@
 
     .product-img-container {
       width: 100%;
-      padding-top: 100%; /* 1:1 Aspect Ratio */
+      padding-top: 100%;
       position: relative;
       background-color: #f7f8fa;
     }
@@ -276,23 +276,9 @@
       margin-bottom: 12px;
     }
 
-    .sale-price {
-      font-size: 1.1rem;
-      font-weight: 700;
-      color: #e53935;
-    }
-
-    .original-price {
-      font-size: 0.9rem;
-      color: var(--text-muted);
-      text-decoration: line-through;
-    }
-
-    .regular-price {
-      font-size: 1.1rem;
-      font-weight: 700;
-      color: var(--text);
-    }
+    .sale-price { font-size: 1.1rem; font-weight: 700; color: #e53935; }
+    .original-price { font-size: 0.9rem; color: var(--text-muted); text-decoration: line-through; }
+    .regular-price { font-size: 1.1rem; font-weight: 700; color: var(--text); }
 
     .btn-view {
       display: block;
@@ -307,9 +293,7 @@
       transition: background 0.2s;
     }
 
-    .btn-view:hover {
-      background-color: #dbeafe;
-    }
+    .btn-view:hover { background-color: #dbeafe; }
 
     .empty-state {
       grid-column: 1 / -1;
@@ -324,11 +308,11 @@
 <body>
 
   <header>
-    <h1>🛍️ Catalogue Visualizer</h1>
+    <h1>🛍️ Multi-Format Visualizer</h1>
     <div class="upload-area">
       <span class="file-name" id="fileName">No file uploaded</span>
-      <label for="fileInput" class="custom-file-upload">Choose XML File</label>
-      <input type="file" id="fileInput" accept=".xml" />
+      <label for="fileInput" class="custom-file-upload">Choose Feed File</label>
+      <input type="file" id="fileInput" accept=".xml,.csv,.xlsx,.xls" />
     </div>
   </header>
 
@@ -338,7 +322,6 @@
         <div class="metric-number" id="totalCount">0</div>
         <div class="metric-label">Total Products</div>
       </div>
-
       <div class="filter-box">
         <h3>Categories</h3>
         <ul class="category-tree" id="categoryTree">
@@ -346,14 +329,14 @@
             <span>All Products</span>
             <span class="badge" id="badgeAll">0</span>
           </li>
-          </ul>
+        </ul>
       </div>
     </aside>
 
     <main class="products-grid" id="productsGrid">
       <div class="empty-state">
         <h3>No products loaded</h3>
-        <p style="margin-top: 8px;">Please upload your XML product catalogue feed to begin visualization.</p>
+        <p style="margin-top: 8px;">Upload an XML, CSV, or XLSX catalogue feed to begin.</p>
       </div>
     </main>
   </div>
@@ -362,30 +345,35 @@
     let allProducts = [];
     let activeFilter = 'All';
 
-    // Handle file input
+    // File Router
     document.getElementById('fileInput').addEventListener('change', function(event) {
       const file = event.target.files[0];
-      if (file) {
-        document.getElementById('fileName').textContent = file.name;
+      if (!file) return;
+
+      document.getElementById('fileName').textContent = file.name;
+      const fileExt = file.name.split('.').pop().toLowerCase();
+
+      if (fileExt === 'xml') {
         const reader = new FileReader();
-        reader.onload = function(e) {
-          parseXMLFeed(e.target.result);
-        };
+        reader.onload = e => parseXMLFeed(e.target.result);
         reader.readAsText(file);
+      } else if (['csv', 'xlsx', 'xls'].includes(fileExt)) {
+        const reader = new FileReader();
+        reader.onload = e => parseSpreadsheetFeed(e.target.result);
+        reader.readAsArrayBuffer(file);
+      } else {
+        alert('Unsupported file format. Please upload XML, CSV, or Excel files.');
       }
     });
 
-    // Parse native XML namespace elements
+    /* --- PARSER 1: XML SPREADSHEET --- */
     function getTagContent(item, tagNames) {
       for (let name of tagNames) {
-        // Try exact name or namespace variations
         let elements = item.getElementsByTagName(name);
         if (!elements.length && name.includes(':')) {
           elements = item.getElementsByTagNameNS("*", name.split(':')[1]);
         }
-        if (elements.length > 0) {
-          return elements[0].textContent.trim();
-        }
+        if (elements.length > 0) return elements[0].textContent.trim();
       }
       return '';
     }
@@ -395,27 +383,70 @@
       const xmlDoc = parser.parseFromString(xmlString, "text/xml");
       const items = xmlDoc.getElementsByTagName("item");
       
+      const rawData = [];
+      for (let i = 0; i < items.length; i++) {
+        const item = items[i];
+        rawData.push({
+          id: getTagContent(item, ['g:id', 'id']),
+          title: getTagContent(item, ['g:title', 'title']),
+          link: getTagContent(item, ['g:link', 'link']),
+          imageLink: getTagContent(item, ['g:image_link', 'image_link']),
+          price: getTagContent(item, ['g:price', 'price']),
+          salePrice: getTagContent(item, ['g:sale_price', 'sale_price']),
+          productType: getTagContent(item, ['g:product_type', 'product_type']),
+          availability: getTagContent(item, ['g:availability', 'availability']) || 'in stock',
+          brand: getTagContent(item, ['g:brand', 'brand'])
+        });
+      }
+      processAndRender(rawData);
+    }
+
+    /* --- PARSER 2: CSV / EXCEL SPREADSHEET --- */
+    function parseSpreadsheetFeed(buffer) {
+      const workbook = XLSX.read(buffer, { type: 'array' });
+      const firstSheetName = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[firstSheetName];
+      
+      // Convert sheet to JSON array of objects
+      const rows = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
+      
+      // Helper to find a key regardless of casing or formatting (e.g., "g:image_link" vs "image link")
+      const findVal = (row, options) => {
+        const keys = Object.keys(row);
+        for (let opt of options) {
+          const matchedKey = keys.find(k => k.toLowerCase().replace(/[^a-z0-9]/g, '') === opt.toLowerCase().replace(/[^a-z0-9]/g, ''));
+          if (matchedKey && row[matchedKey] !== "") return String(row[matchedKey]).trim();
+        }
+        return "";
+      };
+
+      const rawData = rows.map(row => ({
+        id: findVal(row, ['gid', 'id']),
+        title: findVal(row, ['gtitle', 'title', 'name']),
+        link: findVal(row, ['glink', 'link', 'url']),
+        imageLink: findVal(row, ['gimagelink', 'imagelink', 'imageurl', 'image']),
+        price: findVal(row, ['gprice', 'price']),
+        salePrice: findVal(row, ['gsaleprice', 'saleprice', 'discountprice']),
+        productType: findVal(row, ['gproducttype', 'producttype', 'category']),
+        availability: findVal(row, ['gavailability', 'availability', 'stock']) || 'in stock',
+        brand: findVal(row, ['gbrand', 'brand'])
+      })).filter(p => p.title || p.id); // Filter out completely empty rows
+
+      processAndRender(rawData);
+    }
+
+    /* --- UNIFIED DATA PROCESSING --- */
+    function processAndRender(rawData) {
       allProducts = [];
       const categoryCounts = {};
 
-      for (let i = 0; i < items.length; i++) {
-        const item = items[i];
-        
-        const id = getTagContent(item, ['g:id', 'id']);
-        const title = getTagContent(item, ['g:title', 'title']);
-        const link = getTagContent(item, ['g:link', 'link']);
-        const imageLink = getTagContent(item, ['g:image_link', 'image_link']);
-        const price = getTagContent(item, ['g:price', 'price']);
-        const salePrice = getTagContent(item, ['g:sale_price', 'sale_price']);
-        const productType = getTagContent(item, ['g:product_type', 'product_type']);
-        const availability = getTagContent(item, ['g:availability', 'availability']) || 'in stock';
-        const brand = getTagContent(item, ['g:brand', 'brand']);
+      rawData.forEach(item => {
+        // Clean prices (strip currency symbols if present in CSV)
+        const cleanPrice = item.price.replace(/[^0-9.]/g, '');
+        const cleanSalePrice = item.salePrice.replace(/[^0-9.]/g, '');
 
-        // Parse category hierarchy paths
-        // e.g., "Bags > Hand Bag" -> ["Bags", "Hand Bag"]
-        const categories = productType ? productType.split('>').map(c => c.trim()).filter(Boolean) : ['Uncategorized'];
+        const categories = item.productType ? item.productType.split('>').map(c => c.trim()).filter(Boolean) : ['Uncategorized'];
         
-        // Populate counts for full path indexing
         let currentPath = '';
         categories.forEach((cat, index) => {
           currentPath += (index === 0 ? '' : ' > ') + cat;
@@ -423,20 +454,19 @@
         });
 
         allProducts.push({
-          id,
-          title,
-          link,
-          imageLink,
-          price,
-          salePrice,
+          id: item.id,
+          title: item.title,
+          link: item.link,
+          imageLink: item.imageLink,
+          price: cleanPrice,
+          salePrice: cleanSalePrice,
           productType: categories.join(' > '),
           categories,
-          availability,
-          brand
+          availability: item.availability,
+          brand: item.brand
         });
-      }
+      });
 
-      // Update UI Metrics
       document.getElementById('totalCount').textContent = allProducts.length;
       document.getElementById('badgeAll').textContent = allProducts.length;
 
@@ -444,9 +474,9 @@
       filterCategory('All');
     }
 
+    /* --- RENDERING & UI --- */
     function buildCategoryTree(counts) {
       const treeContainer = document.getElementById('categoryTree');
-      // Reset items, keeping the 'All Products' base option
       treeContainer.innerHTML = `
         <li class="category-item active" onclick="filterCategory('All')">
           <span>All Products</span>
@@ -454,12 +484,10 @@
         </li>
       `;
 
-      // Sort paths to ensure parents come before children logically
       const sortedPaths = Object.keys(counts).sort();
-
       sortedPaths.forEach(path => {
         const parts = path.split(' > ');
-        const depth = parts.length - 1; // 0 = Category, 1 = Subcategory, 2 = Sub-subcategory
+        const depth = parts.length - 1;
         const displayName = parts[parts.length - 1];
 
         const li = document.createElement('li');
@@ -471,15 +499,12 @@
           <span>${displayName}</span>
           <span class="badge">${counts[path]}</span>
         `;
-        
         treeContainer.appendChild(li);
       });
     }
 
     function filterCategory(path) {
       activeFilter = path;
-
-      // Update Active Sidebar Highlight
       const items = document.querySelectorAll('.category-item');
       items.forEach(item => {
         if ((path === 'All' && item.getAttribute('onclick').includes('All')) || 
@@ -490,7 +515,6 @@
         }
       });
 
-      // Filter array items matching full tree strings
       const filtered = path === 'All' ? allProducts : allProducts.filter(p => {
         return p.productType === path || p.productType.startsWith(path + ' > ');
       });
@@ -516,7 +540,6 @@
         const card = document.createElement('div');
         card.className = 'product-card';
 
-        // Check if item is actively on discount
         const hasDiscount = p.salePrice && parseFloat(p.salePrice) < parseFloat(p.price);
         
         let priceHtml = '';
@@ -550,7 +573,6 @@
             </div>
           </div>
         `;
-
         grid.appendChild(card);
       });
     }
