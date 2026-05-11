@@ -12,8 +12,8 @@ A lightweight, client-side web application designed to parse, visualize, and fil
 
 ## 🚀 Live Demo
 
-You can access the live visualizer here:  
-**[Insert your GitHub Pages URL here]**
+You can access the live visualizer here:
+**[https://samiulislamsharan.github.io/facebook-product-catalogue-visualizer/](https://samiulislamsharan.github.io/facebook-product-catalogue-visualizer/)**
 
 ## 🛠️ How to Use
 
@@ -27,5 +27,24 @@ You can access the live visualizer here:
 Because this app is a standalone, single-file application, no complex build environments or package managers (like `npm`) are required.
 
 1. Clone the repository:
+
    ```bash
-   git clone [https://github.com/](https://github.com/)<your-username>/xml-catalogue-visualizer.git
+   https://github.com/samiulislamsharan/facebook-product-catalogue-visualizer.git
+   ```
+
+2. Open index.html directly in your browser.
+
+## 📄 Feed Compatibility
+
+This visualizer supports standard RSS 2.0 namespace formats commonly used by Google Merchant Center and Facebook Commerce Manager, including:
+
+- `<g:id>`
+- `<g:title>`
+- `<g:product_type>` (Supports nested paths using `>` delimiters)
+- `<g:image_link>`
+- `<g:price>` & `<g:sale_price>`
+- `<g:availability>`
+
+## 🛡️ Privacy
+
+All data parsing occurs directly within the user's local DOM. Your product catalogues are never stored, cached, or transmitted over the internet.
