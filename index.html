@@ -3,23 +3,26 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
   <title>Multi-Format Product Catalogue Visualizer</title>
   
-  <meta name="title" content="Multi-Format Product Catalogue Visualizer">
   <meta name="description" content="Instantly parse, visualize, and filter standard Facebook and Google product feeds (XML, CSV, XLSX) entirely client-side.">
 
   <meta property="og:type" content="website">
-  <meta property="og:url" content="https://samiulislamsharan.github.io/facebook-product-catalogue-visualizer/">
+  <meta property="og:url" content="https://<your-username>.github.io/xml-catalogue-visualizer/">
   <meta property="og:title" content="🛍️ Multi-Format Product Catalogue Visualizer">
   <meta property="og:description" content="Instantly parse, visualize, and filter standard Facebook and Google product feeds (XML, CSV, XLSX) entirely client-side. Zero server uploads required.">
+  <meta property="og:image" content="https://images.unsplash.com/photo-1556742049-0a67b97c4164?auto=format&fit=crop&w=1200&q=80">
   <meta property="og:site_name" content="Catalogue Visualizer">
 
   <meta property="twitter:card" content="summary_large_image">
-  <meta property="twitter:url" content="https://samiulislamsharan.github.io/facebook-product-catalogue-visualizer/">
+  <meta property="twitter:url" content="https://<your-username>.github.io/xml-catalogue-visualizer/">
   <meta property="twitter:title" content="🛍️ Multi-Format Product Catalogue Visualizer">
   <meta property="twitter:description" content="Instantly parse, visualize, and filter standard Facebook and Google product feeds (XML, CSV, XLSX) entirely client-side. Zero server uploads required.">
-  
+  <meta property="twitter:image" content="https://images.unsplash.com/photo-1556742049-0a67b97c4164?auto=format&fit=crop&w=1200&q=80">
+
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  
   <style>
     :root {
       --primary: #1877f2;
@@ -53,9 +56,16 @@
       border-radius: var(--radius);
       box-shadow: 0 1px 2px rgba(0,0,0,0.1);
       display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .header-top {
+      display: flex;
       flex-wrap: wrap;
       justify-content: space-between;
       align-items: center;
+      width: 100%;
       gap: 16px;
     }
 
@@ -64,34 +74,67 @@
       color: var(--primary);
     }
 
-    .upload-area {
+    .upload-controls {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 16px;
+      width: 100%;
+      border-top: 1px solid var(--border);
+      padding-top: 16px;
+    }
+
+    .file-upload-box {
       display: flex;
       align-items: center;
       gap: 12px;
     }
 
-    input[type="file"] {
-      display: none;
-    }
+    input[type="file"] { display: none; }
 
-    .custom-file-upload {
+    .btn {
       background-color: var(--primary);
       color: white;
       padding: 10px 18px;
+      border: none;
       border-radius: 6px;
       cursor: pointer;
       font-weight: 600;
       font-size: 0.9rem;
-      transition: background 0.2s;
+      transition: background 0.2s, opacity 0.2s;
     }
 
-    .custom-file-upload:hover {
-      background-color: var(--primary-hover);
-    }
+    .btn:hover { background-color: var(--primary-hover); }
+    .btn:disabled { opacity: 0.6; cursor: not-allowed; }
 
     .file-name {
       font-size: 0.9rem;
       color: var(--text-muted);
+    }
+
+    /* URL Bar Styling */
+    .url-upload-box {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-grow: 1;
+      max-width: 600px;
+    }
+
+    .url-input {
+      flex-grow: 1;
+      padding: 10px 14px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-size: 0.9rem;
+      outline: none;
+    }
+
+    .url-input:focus { border-color: var(--primary); }
+
+    .divider {
+      color: var(--border);
+      font-weight: bold;
     }
 
     /* Dashboard Layout */
@@ -104,17 +147,12 @@
     }
 
     @media (max-width: 768px) {
-      .dashboard {
-        grid-template-columns: 1fr;
-      }
+      .dashboard { grid-template-columns: 1fr; }
+      .url-upload-box { width: 100%; max-width: none; }
     }
 
     /* Sidebar / Stats & Categories */
-    .sidebar {
-      display: flex;
-      flex-direction: column;
-      gap: 20px;
-    }
+    .sidebar { display: flex; flex-direction: column; gap: 20px; }
 
     .metric-box {
       background: var(--card-bg);
@@ -124,20 +162,8 @@
       text-align: center;
     }
 
-    .metric-number {
-      font-size: 2.2rem;
-      font-weight: 700;
-      color: var(--primary);
-      line-height: 1.2;
-    }
-
-    .metric-label {
-      font-size: 0.85rem;
-      color: var(--text-muted);
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      margin-top: 4px;
-    }
+    .metric-number { font-size: 2.2rem; font-weight: 700; color: var(--primary); line-height: 1.2; }
+    .metric-label { font-size: 0.85rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-top: 4px; }
 
     .filter-box {
       background: var(--card-bg);
@@ -146,17 +172,9 @@
       box-shadow: 0 1px 2px rgba(0,0,0,0.1);
     }
 
-    .filter-box h3 {
-      font-size: 1rem;
-      margin-bottom: 12px;
-      padding-bottom: 8px;
-      border-bottom: 1px solid var(--border);
-    }
+    .filter-box h3 { font-size: 1rem; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
 
-    .category-tree {
-      list-style: none;
-      font-size: 0.9rem;
-    }
+    .category-tree { list-style: none; font-size: 0.9rem; }
 
     .category-item {
       padding: 6px 8px;
@@ -169,28 +187,11 @@
       margin-bottom: 2px;
     }
 
-    .category-item:hover {
-      background-color: var(--bg);
-    }
+    .category-item:hover { background-color: var(--bg); }
+    .category-item.active { background-color: #e7f3ff; color: var(--primary); font-weight: 600; }
 
-    .category-item.active {
-      background-color: #e7f3ff;
-      color: var(--primary);
-      font-weight: 600;
-    }
-
-    .badge {
-      background: var(--bg);
-      padding: 2px 8px;
-      border-radius: 10px;
-      font-size: 0.75rem;
-      color: var(--text-muted);
-    }
-
-    .active .badge {
-      background: var(--primary);
-      color: white;
-    }
+    .badge { background: var(--bg); padding: 2px 8px; border-radius: 10px; font-size: 0.75rem; color: var(--text-muted); }
+    .active .badge { background: var(--primary); color: white; }
 
     .depth-1 { margin-left: 12px; font-size: 0.85rem; }
     .depth-2 { margin-left: 24px; font-size: 0.8rem; }
@@ -214,120 +215,59 @@
       position: relative;
     }
 
-    .product-card:hover {
-      transform: translateY(-4px);
-      box-shadow: 0 8px 16px rgba(0,0,0,0.1);
-    }
+    .product-card:hover { transform: translateY(-4px); box-shadow: 0 8px 16px rgba(0,0,0,0.1); }
 
-    .product-img-container {
-      width: 100%;
-      padding-top: 100%;
-      position: relative;
-      background-color: #f7f8fa;
-    }
-
-    .product-img {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-    }
+    .product-img-container { width: 100%; padding-top: 100%; position: relative; background-color: #f7f8fa; }
+    .product-img { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; }
 
     .availability-tag {
-      position: absolute;
-      top: 10px;
-      left: 10px;
-      background: rgba(0, 0, 0, 0.6);
-      color: white;
-      font-size: 0.7rem;
-      padding: 4px 8px;
-      border-radius: 4px;
-      text-transform: uppercase;
-      font-weight: 600;
-      backdrop-filter: blur(4px);
+      position: absolute; top: 10px; left: 10px; background: rgba(0, 0, 0, 0.6); color: white;
+      font-size: 0.7rem; padding: 4px 8px; border-radius: 4px; text-transform: uppercase; font-weight: 600; backdrop-filter: blur(4px);
     }
-
     .availability-tag.in-stock { background: rgba(46, 125, 50, 0.85); }
 
-    .product-info {
-      padding: 16px;
-      display: flex;
-      flex-direction: column;
-      flex-grow: 1;
-      justify-content: space-between;
-    }
+    .product-info { padding: 16px; display: flex; flex-direction: column; flex-grow: 1; justify-content: space-between; }
+    .product-brand { font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; margin-bottom: 4px; }
+    .product-title { font-size: 0.95rem; font-weight: 600; margin-bottom: 8px; line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .product-category-path { font-size: 0.75rem; color: var(--text-muted); margin-bottom: 12px; }
 
-    .product-brand {
-      font-size: 0.75rem;
-      color: var(--text-muted);
-      text-transform: uppercase;
-      margin-bottom: 4px;
-    }
-
-    .product-title {
-      font-size: 0.95rem;
-      font-weight: 600;
-      margin-bottom: 8px;
-      line-height: 1.3;
-      display: -webkit-box;
-      -webkit-line-clamp: 2;
-      -webkit-box-orient: vertical;
-      overflow: hidden;
-    }
-
-    .product-category-path {
-      font-size: 0.75rem;
-      color: var(--text-muted);
-      margin-bottom: 12px;
-    }
-
-    .price-row {
-      display: flex;
-      align-items: baseline;
-      gap: 8px;
-      margin-top: auto;
-      margin-bottom: 12px;
-    }
-
+    .price-row { display: flex; align-items: baseline; gap: 8px; margin-top: auto; margin-bottom: 12px; }
     .sale-price { font-size: 1.1rem; font-weight: 700; color: #e53935; }
     .original-price { font-size: 0.9rem; color: var(--text-muted); text-decoration: line-through; }
     .regular-price { font-size: 1.1rem; font-weight: 700; color: var(--text); }
 
     .btn-view {
-      display: block;
-      text-align: center;
-      background-color: #e7f3ff;
-      color: var(--primary);
-      text-decoration: none;
-      padding: 8px;
-      border-radius: 6px;
-      font-size: 0.85rem;
-      font-weight: 600;
-      transition: background 0.2s;
+      display: block; text-align: center; background-color: #e7f3ff; color: var(--primary);
+      text-decoration: none; padding: 8px; border-radius: 6px; font-size: 0.85rem; font-weight: 600; transition: background 0.2s;
     }
-
     .btn-view:hover { background-color: #dbeafe; }
 
     .empty-state {
-      grid-column: 1 / -1;
-      text-align: center;
-      padding: 64px 20px;
-      background: var(--card-bg);
-      border-radius: var(--radius);
-      color: var(--text-muted);
+      grid-column: 1 / -1; text-align: center; padding: 64px 20px; background: var(--card-bg);
+      border-radius: var(--radius); color: var(--text-muted);
     }
   </style>
 </head>
 <body>
 
   <header>
-    <h1>🛍️ Multi-Format Visualizer</h1>
-    <div class="upload-area">
-      <span class="file-name" id="fileName">No file uploaded</span>
-      <label for="fileInput" class="custom-file-upload">Choose Feed File</label>
-      <input type="file" id="fileInput" accept=".xml,.csv,.xlsx,.xls" />
+    <div class="header-top">
+      <h1>🛍️ Multi-Format Visualizer</h1>
+      <span class="file-name" id="fileName">No feed loaded</span>
+    </div>
+
+    <div class="upload-controls">
+      <div class="file-upload-box">
+        <label for="fileInput" class="btn" id="fileBtnLabel">Upload Local File</label>
+        <input type="file" id="fileInput" accept=".xml,.csv,.xlsx,.xls" />
+      </div>
+
+      <span class="divider">OR</span>
+
+      <div class="url-upload-box">
+        <input type="url" id="urlInput" class="url-input" placeholder="Paste feed URL (.xml, .csv, .xlsx)..." />
+        <button class="btn" id="fetchUrlBtn" onclick="fetchFeedFromUrl()">Import Link</button>
+      </div>
     </div>
   </header>
 
@@ -351,7 +291,7 @@
     <main class="products-grid" id="productsGrid">
       <div class="empty-state">
         <h3>No products loaded</h3>
-        <p style="margin-top: 8px;">Upload an XML, CSV, or XLSX catalogue feed to begin.</p>
+        <p style="margin-top: 8px;">Upload a file or paste a direct feed URL to begin.</p>
       </div>
     </main>
   </div>
@@ -360,26 +300,96 @@
     let allProducts = [];
     let activeFilter = 'All';
 
-    // File Router
+    // UI Feedback Helper
+    function setLoadingState(isLoading, sourceName = '') {
+      const fetchBtn = document.getElementById('fetchUrlBtn');
+      const fileLabel = document.getElementById('fileBtnLabel');
+      const grid = document.getElementById('productsGrid');
+
+      if (isLoading) {
+        fetchBtn.disabled = true;
+        fileLabel.style.pointerEvents = 'none'; fileLabel.style.opacity = '0.6';
+        document.getElementById('fileName').textContent = `Loading: ${sourceName}...`;
+        grid.innerHTML = `<div class="empty-state"><h3>Processing Feed...</h3><p style="margin-top: 8px;">Downloading and parsing data. Please wait.</p></div>`;
+      } else {
+        fetchBtn.disabled = false;
+        fileLabel.style.pointerEvents = 'auto'; fileLabel.style.opacity = '1';
+        if (sourceName) document.getElementById('fileName').textContent = sourceName;
+      }
+    }
+
+    /* --- INPUT 1: LOCAL FILE UPLOAD --- */
     document.getElementById('fileInput').addEventListener('change', function(event) {
       const file = event.target.files[0];
       if (!file) return;
 
-      document.getElementById('fileName').textContent = file.name;
-      const fileExt = file.name.split('.').pop().toLowerCase();
-
-      if (fileExt === 'xml') {
-        const reader = new FileReader();
-        reader.onload = e => parseXMLFeed(e.target.result);
-        reader.readAsText(file);
-      } else if (['csv', 'xlsx', 'xls'].includes(fileExt)) {
-        const reader = new FileReader();
-        reader.onload = e => parseSpreadsheetFeed(e.target.result);
-        reader.readAsArrayBuffer(file);
-      } else {
-        alert('Unsupported file format. Please upload XML, CSV, or Excel files.');
-      }
+      setLoadingState(true, file.name);
+      setTimeout(() => {
+        const fileExt = file.name.split('.').pop().toLowerCase();
+        if (fileExt === 'xml') {
+          const reader = new FileReader();
+          reader.onload = e => { parseXMLFeed(e.target.result); setLoadingState(false, file.name); };
+          reader.readAsText(file);
+        } else if (['csv', 'xlsx', 'xls'].includes(fileExt)) {
+          const reader = new FileReader();
+          reader.onload = e => { parseSpreadsheetFeed(e.target.result); setLoadingState(false, file.name); };
+          reader.readAsArrayBuffer(file);
+        } else {
+          alert('Unsupported file format.');
+          setLoadingState(false, 'Import failed');
+        }
+      }, 100); // Small timeout to allow UI to render loading state
     });
+
+    /* --- INPUT 2: FETCH FROM URL --- */
+    async function fetchFeedFromUrl() {
+      const rawUrl = document.getElementById('urlInput').value.trim();
+      if (!rawUrl) { alert('Please enter a valid URL.'); return; }
+
+      let fileExt = 'xml'; // Default assumption
+      const cleanedPath = rawUrl.split('?')[0].toLowerCase();
+      if (cleanedPath.endsWith('.csv')) fileExt = 'csv';
+      if (cleanedPath.endsWith('.xlsx') || cleanedPath.endsWith('.xls')) fileExt = 'xlsx';
+
+      const displayUrlName = cleanedPath.length > 40 ? '...' + cleanedPath.slice(-35) : cleanedPath;
+      setLoadingState(true, displayUrlName);
+
+      // Helper to fetch directly, or use a public proxy if CORS blocks it
+      async function smartFetch(url, asBuffer = false) {
+        try {
+          const res = await fetch(url);
+          if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+          return asBuffer ? await res.arrayBuffer() : await res.text();
+        } catch (err) {
+          console.warn("Direct fetch failed, trying CORS proxy fallback...", err);
+          const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(url)}`;
+          const proxyRes = await fetch(proxyUrl);
+          if (!proxyRes.ok) throw new Error('Proxy fetch failed. Ensure the link is publicly accessible.');
+          return asBuffer ? await proxyRes.arrayBuffer() : await proxyRes.text();
+        }
+      }
+
+      try {
+        if (fileExt === 'xml') {
+          const xmlText = await smartFetch(rawUrl, false);
+          parseXMLFeed(xmlText);
+        } else if (fileExt === 'csv') {
+          // Read CSV as text, but convert to buffer for SheetJS consistency
+          const csvText = await smartFetch(rawUrl, false);
+          const encoder = new TextEncoder();
+          parseSpreadsheetFeed(encoder.encode(csvText));
+        } else {
+          const arrayBuf = await smartFetch(rawUrl, true);
+          parseSpreadsheetFeed(arrayBuf);
+        }
+        setLoadingState(false, displayUrlName);
+      } catch (error) {
+        console.error("Fetch Feed Error:", error);
+        alert(`Failed to load feed from URL.\n\nReason: ${error.message}\n\nMake sure the URL is public and leads directly to the raw file.`);
+        setLoadingState(false, 'Import failed');
+        document.getElementById('productsGrid').innerHTML = `<div class="empty-state"><h3>Import Failed</h3><p style="margin-top: 8px;">Could not fetch remote URL. Check network logs or try saving the file locally.</p></div>`;
+      }
+    }
 
     /* --- PARSER 1: XML SPREADSHEET --- */
     function getTagContent(item, tagNames) {
@@ -421,11 +431,8 @@
       const workbook = XLSX.read(buffer, { type: 'array' });
       const firstSheetName = workbook.SheetNames[0];
       const worksheet = workbook.Sheets[firstSheetName];
-      
-      // Convert sheet to JSON array of objects
       const rows = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
       
-      // Helper to find a key regardless of casing or formatting (e.g., "g:image_link" vs "image link")
       const findVal = (row, options) => {
         const keys = Object.keys(row);
         for (let opt of options) {
@@ -445,7 +452,7 @@
         productType: findVal(row, ['gproducttype', 'producttype', 'category']),
         availability: findVal(row, ['gavailability', 'availability', 'stock']) || 'in stock',
         brand: findVal(row, ['gbrand', 'brand'])
-      })).filter(p => p.title || p.id); // Filter out completely empty rows
+      })).filter(p => p.title || p.id);
 
       processAndRender(rawData);
     }
@@ -456,10 +463,8 @@
       const categoryCounts = {};
 
       rawData.forEach(item => {
-        // Clean prices (strip currency symbols if present in CSV)
         const cleanPrice = item.price.replace(/[^0-9.]/g, '');
         const cleanSalePrice = item.salePrice.replace(/[^0-9.]/g, '');
-
         const categories = item.productType ? item.productType.split('>').map(c => c.trim()).filter(Boolean) : ['Uncategorized'];
         
         let currentPath = '';
@@ -492,12 +497,7 @@
     /* --- RENDERING & UI --- */
     function buildCategoryTree(counts) {
       const treeContainer = document.getElementById('categoryTree');
-      treeContainer.innerHTML = `
-        <li class="category-item active" onclick="filterCategory('All')">
-          <span>All Products</span>
-          <span class="badge" id="badgeAll">${allProducts.length}</span>
-        </li>
-      `;
+      treeContainer.innerHTML = `<li class="category-item active" onclick="filterCategory('All')"><span>All Products</span><span class="badge" id="badgeAll">${allProducts.length}</span></li>`;
 
       const sortedPaths = Object.keys(counts).sort();
       sortedPaths.forEach(path => {
@@ -509,11 +509,7 @@
         li.className = `category-item depth-${depth}`;
         li.setAttribute('data-path', path);
         li.onclick = () => filterCategory(path);
-        
-        li.innerHTML = `
-          <span>${displayName}</span>
-          <span class="badge">${counts[path]}</span>
-        `;
+        li.innerHTML = `<span>${displayName}</span><span class="badge">${counts[path]}</span>`;
         treeContainer.appendChild(li);
       });
     }
@@ -522,18 +518,14 @@
       activeFilter = path;
       const items = document.querySelectorAll('.category-item');
       items.forEach(item => {
-        if ((path === 'All' && item.getAttribute('onclick').includes('All')) || 
-            item.getAttribute('data-path') === path) {
+        if ((path === 'All' && item.getAttribute('onclick').includes('All')) || item.getAttribute('data-path') === path) {
           item.classList.add('active');
         } else {
           item.classList.remove('active');
         }
       });
 
-      const filtered = path === 'All' ? allProducts : allProducts.filter(p => {
-        return p.productType === path || p.productType.startsWith(path + ' > ');
-      });
-
+      const filtered = path === 'All' ? allProducts : allProducts.filter(p => p.productType === path || p.productType.startsWith(path + ' > '));
       renderProducts(filtered);
     }
 
@@ -542,31 +534,16 @@
       grid.innerHTML = '';
 
       if (products.length === 0) {
-        grid.innerHTML = `
-          <div class="empty-state">
-            <h3>No matching items</h3>
-            <p style="margin-top: 8px;">Try selecting a different category filter.</p>
-          </div>
-        `;
+        grid.innerHTML = `<div class="empty-state"><h3>No matching items</h3><p style="margin-top: 8px;">Try selecting a different category filter.</p></div>`;
         return;
       }
 
       products.forEach(p => {
         const card = document.createElement('div');
         card.className = 'product-card';
-
         const hasDiscount = p.salePrice && parseFloat(p.salePrice) < parseFloat(p.price);
         
-        let priceHtml = '';
-        if (hasDiscount) {
-          priceHtml = `
-            <span class="sale-price">৳${p.salePrice}</span>
-            <span class="original-price">৳${p.price}</span>
-          `;
-        } else {
-          priceHtml = `<span class="regular-price">৳${p.price || 'N/A'}</span>`;
-        }
-
+        let priceHtml = hasDiscount ? `<span class="sale-price">৳${p.salePrice}</span><span class="original-price">৳${p.price}</span>` : `<span class="regular-price">৳${p.price || 'N/A'}</span>`;
         const availClass = p.availability.toLowerCase().includes('in stock') ? 'in-stock' : '';
 
         card.innerHTML = `
@@ -581,9 +558,7 @@
               <div class="product-category-path">${p.productType.replace(/ > /g, ' • ')}</div>
             </div>
             <div>
-              <div class="price-row">
-                ${priceHtml}
-              </div>
+              <div class="price-row">${priceHtml}</div>
               <a href="${p.link}" target="_blank" class="btn-view" rel="noopener noreferrer">View Product ↗</a>
             </div>
           </div>
