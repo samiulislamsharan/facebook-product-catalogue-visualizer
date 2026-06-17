@@ -349,6 +349,21 @@
       overflow: hidden;
     }
 
+    .product-id {
+      display: inline-block;
+      text-align: center;
+      background-color: #e7f3ff;
+      color: var(--primary);
+      text-decoration: none;
+      padding: 5px;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      transition: background 0.2s;
+      border: 1px solid;
+      margin-bottom: 8px;
+  }
+
     .product-category-path {
       font-size: 0.75rem;
       color: var(--text-muted);
@@ -716,6 +731,7 @@
             <div>
               ${p.brand ? `<div class="product-brand">${p.brand}</div>` : ''}
               <div class="product-title" title="${p.title}">${p.title || 'Unnamed Product'}</div>
+              <div class="product-id" title="${p.id}">${p.id || 'N/A'}</div>
               <div class="product-category-path">${p.productType.replace(/ > /g, ' • ')}</div>
             </div>
             <div>
