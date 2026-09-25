@@ -223,6 +223,10 @@ function parseXMLFeed(xmlString) {
       availability:
         getTagContent(item, ["g:availability", "availability"]) || "in stock",
       brand: getTagContent(item, ["g:brand", "brand"]),
+      description: getTagContent(item, ["g:description", "description"]),
+      gtin: getTagContent(item, ["g:gtin", "gtin"]),
+      mpn: getTagContent(item, ["g:mpn", "mpn"]),
+      condition: getTagContent(item, ["g:condition", "condition"]),
     });
   }
   processAndRender(rawData);
@@ -261,6 +265,10 @@ function parseSpreadsheetFeed(buffer) {
       availability:
         findVal(row, ["gavailability", "availability", "stock"]) || "in stock",
       brand: findVal(row, ["gbrand", "brand"]),
+      description: findVal(row, ["gdescription", "description"]),
+      gtin: findVal(row, ["ggtin", "gtin"]),
+      mpn: findVal(row, ["gmpn", "mpn"]),
+      condition: findVal(row, ["gcondition", "condition"]),
     }))
     .filter((p) => p.title || p.id);
 
@@ -311,6 +319,10 @@ function processAndRender(rawData) {
       categories,
       availability: item.availability,
       brand: item.brand,
+      description: item.description,
+      gtin: item.gtin,
+      mpn: item.mpn,
+      condition: item.condition,
       issues: issues,
     });
   });
@@ -572,18 +584,21 @@ function renderProducts(products, append = false) {
       <div class="card shadow-sm w-100 border-0 h-100 d-flex flex-column position-relative">
         ${availBadge}
         ${issuesBadge}
-        <div class="bg-body-tertiary" style="height: 220px; display: flex; align-items: center; justify-content: center; overflow: hidden; border-top-left-radius: var(--bs-card-inner-border-radius); border-top-right-radius: var(--bs-card-inner-border-radius); padding: 1rem;">
+        <div class="bg-body-tertiary" style="height: 220px; display: flex; align-items: center; justify-content: center; overflow: hidden; border-top-left-radius: var(--bs-card-inner-border-radius); border-top-right-radius: var(--bs-card-inner-border-radius); padding: 1rem; cursor: pointer;" onclick="openProductModal('${p.id.replace(/'/g, "\\'")}')">
           <img src="${p.imageLink}" alt="Product" class="img-fluid" style="max-height: 100%; object-fit: contain;" loading="lazy" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\\'http://www.w3.org/2000/svg\\' width=\\'100\\' height=\\'100\\'><rect width=\\'100\\' height=\\'100\\' fill=\\'transparent\\'/><text x=\\'50%\\' y=\\'50%\\' font-size=\\'12\\' text-anchor=\\'middle\\' fill=\\'%23adb5bd\\'>No Image</text></svg>'">
         </div>
         <div class="card-body d-flex flex-column">
           ${p.brand ? `<small class="text-muted text-uppercase fw-bold mb-1" style="font-size: 0.7rem; letter-spacing: 0.5px;">${p.brand}</small>` : ""}
-          <h6 class="card-title mb-1 text-truncate" title="${p.title}">${p.title || "Unnamed Product"}</h6>
+          <h6 class="card-title mb-1 text-truncate" title="${p.title}" style="cursor: pointer;" onclick="openProductModal('${p.id.replace(/'/g, "\\'")}')">${p.title || "Unnamed Product"}</h6>
           <small class="text-muted mb-2 d-block text-truncate" style="font-size: 0.75rem;" title="${p.id}">ID: ${p.id || "N/A"}</small>
           <small class="text-muted text-truncate d-block mb-3" style="font-size: 0.75rem;">${p.productType.replace(/ > /g, " • ")}</small>
           
           <div class="mt-auto pt-3 border-top">
             <div class="mb-3">${priceHtml}</div>
-            <a href="${p.link}" target="_blank" class="btn btn-primary w-100 fw-bold" rel="noopener noreferrer">View Product <i class="fa-solid fa-arrow-up-right-from-square ms-1"></i></a>
+            <div class="d-flex gap-2">
+              <button class="btn btn-outline-secondary flex-grow-1 fw-bold" onclick="openProductModal('${p.id.replace(/'/g, "\\'")}')"><i class="fa-solid fa-circle-info me-1"></i> Details</button>
+              <a href="${p.link}" target="_blank" class="btn btn-primary flex-grow-1 fw-bold" rel="noopener noreferrer">View <i class="fa-solid fa-arrow-up-right-from-square ms-1"></i></a>
+            </div>
           </div>
         </div>
       </div>
@@ -605,4 +620,78 @@ function renderProducts(products, append = false) {
     });
     scrollObserver.observe(lastCard);
   }
+}
+
+function openProductModal(id) {
+  const product = allProducts.find((p) => p.id === id);
+  if (!product) return;
+
+  const modalBody = document.getElementById("productModalBody");
+
+  const hasDiscount =
+    product.salePrice &&
+    parseFloat(product.salePrice) < parseFloat(product.price);
+  let priceHtml = hasDiscount
+    ? `<span class="text-danger fw-bold fs-4 me-2">${product.salePrice}</span><span class="text-muted text-decoration-line-through"><i class="fa-solid fa-bangladeshi-taka-sign"></i> ${product.price}</span>`
+    : `<span class="fw-bold fs-4"><i class="fa-solid fa-bangladeshi-taka-sign"></i> ${product.price || "N/A"}</span>`;
+
+  modalBody.innerHTML = `
+    <div class="row g-4">
+      <div class="col-md-5">
+        <div class="bg-body-tertiary rounded p-3 text-center h-100 d-flex align-items-center justify-content-center">
+          <img src="${product.imageLink}" class="img-fluid rounded" style="max-height: 400px; object-fit: contain;" alt="Product Image" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\\'http://www.w3.org/2000/svg\\' width=\\'100\\' height=\\'100\\'><rect width=\\'100\\' height=\\'100\\' fill=\\'transparent\\'/><text x=\\'50%\\' y=\\'50%\\' font-size=\\'12\\' text-anchor=\\'middle\\' fill=\\'%23adb5bd\\'>No Image</text></svg>'">
+        </div>
+      </div>
+      <div class="col-md-7 py-3">
+        ${product.brand ? `<div class="badge text-bg-primary mb-2">${product.brand}</div>` : ""}
+        <h4 class="fw-bold mb-3">${product.title || "Unnamed Product"}</h4>
+        <div class="mb-4">${priceHtml}</div>
+        
+        <div class="mb-4">
+          <a href="${product.link}" target="_blank" class="btn btn-primary btn-lg w-100 fw-bold" rel="noopener noreferrer">
+            View on Live Store <i class="fa-solid fa-arrow-up-right-from-square ms-2"></i>
+          </a>
+        </div>
+
+        <h6 class="fw-bold border-bottom pb-2 mb-3">Product Details</h6>
+        <table class="table table-sm table-borderless fs-6">
+          <tbody>
+            <tr><th class="text-muted" style="width: 120px;">ID</th><td>${product.id || "N/A"}</td></tr>
+            <tr><th class="text-muted">Availability</th><td>${product.availability}</td></tr>
+            <tr><th class="text-muted">Condition</th><td><span class="text-capitalize">${product.condition || "new"}</span></td></tr>
+            ${product.gtin ? `<tr><th class="text-muted">GTIN</th><td>${product.gtin}</td></tr>` : ""}
+            ${product.mpn ? `<tr><th class="text-muted">MPN</th><td>${product.mpn}</td></tr>` : ""}
+          </tbody>
+        </table>
+
+        <h6 class="fw-bold border-bottom pb-2 mb-3 mt-4">Category Path</h6>
+        <p class="small text-muted">${product.productType.replace(/ > /g, " <i class='fa-solid fa-chevron-right mx-1' style='font-size: 0.7em'></i> ")}</p>
+
+        ${
+          product.description
+            ? `
+          <h6 class="fw-bold border-bottom pb-2 mb-3 mt-4">Description</h6>
+          <p class="small text-muted" style="white-space: pre-line;">${product.description}</p>
+        `
+            : ""
+        }
+        
+        ${
+          product.issues && product.issues.length > 0
+            ? `
+          <div class="alert alert-danger mt-4 mb-0">
+            <h6 class="alert-heading fw-bold"><i class="fa-solid fa-triangle-exclamation me-2"></i> Diagnostics Warnings</h6>
+            <ul class="mb-0 small">
+              ${product.issues.map((i) => `<li>${i}</li>`).join("")}
+            </ul>
+          </div>
+        `
+            : ""
+        }
+      </div>
+    </div>
+  `;
+
+  const modal = new bootstrap.Modal(document.getElementById("productModal"));
+  modal.show();
 }
