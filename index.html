@@ -38,14 +38,63 @@
     crossorigin="anonymous" referrerpolicy="no-referrer">
 
   <link rel="stylesheet" href="./src/css/style.css">
+
+  <script>
+    const getStoredTheme = () => localStorage.getItem('theme');
+    const setStoredTheme = theme => localStorage.setItem('theme', theme);
+
+    const getPreferredTheme = () => {
+      const storedTheme = getStoredTheme();
+      if (storedTheme) return storedTheme;
+      return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    };
+
+    const setTheme = theme => {
+      document.documentElement.setAttribute('data-bs-theme', theme);
+    };
+
+    setTheme(getPreferredTheme());
+
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+      const storedTheme = getStoredTheme();
+      if (storedTheme !== 'light' && storedTheme !== 'dark') {
+        const theme = getPreferredTheme();
+        setTheme(theme);
+        const icon = document.getElementById('themeIcon');
+        if (icon) icon.className = theme === 'dark' ? 'fa-solid fa-sun' : 'fa-solid fa-moon';
+      }
+    });
+
+    window.toggleTheme = () => {
+      const current = document.documentElement.getAttribute('data-bs-theme');
+      const newTheme = current === 'dark' ? 'light' : 'dark';
+      setStoredTheme(newTheme);
+      setTheme(newTheme);
+      const icon = document.getElementById('themeIcon');
+      if (icon) icon.className = newTheme === 'dark' ? 'fa-solid fa-sun' : 'fa-solid fa-moon';
+    };
+
+    document.addEventListener('DOMContentLoaded', () => {
+      const current = document.documentElement.getAttribute('data-bs-theme');
+      const icon = document.getElementById('themeIcon');
+      if (icon) icon.className = current === 'dark' ? 'fa-solid fa-sun' : 'fa-solid fa-moon';
+    });
+  </script>
 </head>
-<body class="bg-light">
+<body class="bg-body-tertiary">
 
   <header class="navbar navbar-dark bg-primary shadow-sm mb-4 py-3">
     <div class="container-fluid px-4">
       <span class="navbar-brand mb-0 h2 fw-bold"><i class="fa-solid fa-bag-shopping me-2"></i> Multi-Format
         Visualizer</span>
-      <span class="text-light" id="fileName">No feed loaded</span>
+      <div class="d-flex align-items-center gap-3">
+        <span class="text-light d-none d-sm-inline" id="fileName">No feed loaded</span>
+        <button class="btn btn-outline-light rounded-circle" onclick="toggleTheme()"
+          style="width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;"
+          title="Toggle Dark Mode">
+          <i id="themeIcon" class="fa-solid fa-moon"></i>
+        </button>
+      </div>
     </div>
   </header>
 
@@ -130,8 +179,8 @@
 
             <div>
               <label class="form-label fw-bold small text-muted text-uppercase mb-1">Brands</label>
-              <div id="brandsList" class="border rounded p-2"
-                style="max-height: 150px; overflow-y: auto; font-size: 0.85rem; background: #f8f9fa;">
+              <div id="brandsList" class="border rounded p-2 bg-body-tertiary"
+                style="max-height: 150px; overflow-y: auto; font-size: 0.85rem;">
                 <span class="text-muted">No brands available</span>
               </div>
             </div>
@@ -150,7 +199,7 @@
                 class="list-group-item d-flex justify-content-between align-items-center active list-group-item-action"
                 data-path="All" onclick="filterCategory('All')" style="cursor:pointer; border-radius: 6px;">
                 All Products
-                <span class="badge bg-light text-dark rounded-pill" id="badgeAll">0</span>
+                <span class="badge text-bg-secondary rounded-pill" id="badgeAll">0</span>
               </li>
             </ul>
           </div>
@@ -160,7 +209,7 @@
       <main class="col-lg-9 col-md-8">
         <div class="row g-4" id="productsGrid">
           <div class="col-12">
-            <div class="text-center py-5 text-muted bg-white rounded shadow-sm">
+            <div class="text-center py-5 text-muted bg-body rounded shadow-sm">
               <i class="fa-solid fa-box-open fa-4x mb-3 text-secondary opacity-50"></i>
               <h3>No products loaded</h3>
               <p>Upload a file or paste a direct feed URL to begin.</p>

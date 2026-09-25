@@ -14,7 +14,7 @@ function setLoadingState(isLoading, sourceName = "") {
     document.getElementById("fileName").textContent =
       `Loading: ${sourceName}...`;
     grid.innerHTML = `<div class="col-12">
-      <div class="text-center py-5 bg-white rounded shadow-sm text-muted">
+      <div class="text-center py-5 bg-body rounded shadow-sm text-muted">
         <div class="spinner-border text-primary mb-3" role="status"></div>
         <h3 id="progressText">Processing Feed...</h3>
         <p class="mb-4">Downloading and parsing data. Please wait.</p>
@@ -188,7 +188,7 @@ async function fetchFeedFromUrl() {
     );
     setLoadingState(false, "Import failed");
     document.getElementById("productsGrid").innerHTML =
-      `<div class="col-12"><div class="text-center py-5 bg-white rounded shadow-sm text-danger"><i class="fa-solid fa-triangle-exclamation fa-3x mb-3"></i><h3>Import Failed</h3><p>Could not fetch remote URL. Check network logs or try saving the file locally.</p></div></div>`;
+      `<div class="col-12"><div class="text-center py-5 bg-body rounded shadow-sm text-danger"><i class="fa-solid fa-triangle-exclamation fa-3x mb-3"></i><h3>Import Failed</h3><p>Could not fetch remote URL. Check network logs or try saving the file locally.</p></div></div>`;
   }
 }
 
@@ -365,7 +365,7 @@ function buildCategoryTree(counts) {
   const treeContainer = document.getElementById("categoryTree");
   treeContainer.innerHTML = `<li class="list-group-item d-flex justify-content-between align-items-center active list-group-item-action" data-path="All" onclick="filterCategory('All')" style="cursor:pointer; border-radius: 6px; margin-bottom: 2px;">
     All Products
-    <span class="badge bg-light text-dark rounded-pill" id="badgeAll">${allProducts.length}</span>
+    <span class="badge text-bg-secondary rounded-pill" id="badgeAll">${allProducts.length}</span>
   </li>`;
 
   const sortedPaths = Object.keys(counts).sort();
@@ -411,15 +411,15 @@ function filterCategory(path) {
       item.classList.add("active");
       if (badge) {
         badge.classList.remove("bg-secondary");
-        badge.classList.add("bg-light", "text-dark");
+        badge.classList.add("text-bg-secondary");
       }
     } else {
       item.classList.remove("active");
       if (badge && itemPath !== "All") {
-        badge.classList.remove("bg-light", "text-dark");
+        badge.classList.remove("text-bg-secondary");
         badge.classList.add("bg-secondary");
       } else if (badge && itemPath === "All") {
-        badge.classList.remove("bg-light", "text-dark");
+        badge.classList.remove("text-bg-secondary");
         badge.classList.add("bg-secondary");
       }
     }
@@ -539,7 +539,7 @@ function renderProducts(products, append = false) {
   if (!append) {
     grid.innerHTML = "";
     if (products.length === 0) {
-      grid.innerHTML = `<div class="col-12"><div class="text-center py-5 bg-white rounded shadow-sm text-muted"><i class="fa-solid fa-magnifying-glass fa-3x mb-3 opacity-50"></i><h3>No matching items</h3><p>Try selecting a different category filter or adjusting your search.</p></div></div>`;
+      grid.innerHTML = `<div class="col-12"><div class="text-center py-5 bg-body rounded shadow-sm text-muted"><i class="fa-solid fa-magnifying-glass fa-3x mb-3 opacity-50"></i><h3>No matching items</h3><p>Try selecting a different category filter or adjusting your search.</p></div></div>`;
       return;
     }
   }
@@ -572,8 +572,8 @@ function renderProducts(products, append = false) {
       <div class="card shadow-sm w-100 border-0 h-100 d-flex flex-column position-relative">
         ${availBadge}
         ${issuesBadge}
-        <div style="height: 220px; background-color: #f8f9fa; display: flex; align-items: center; justify-content: center; overflow: hidden; border-top-left-radius: var(--bs-card-inner-border-radius); border-top-right-radius: var(--bs-card-inner-border-radius); padding: 1rem;">
-          <img src="${p.imageLink}" alt="Product" class="img-fluid" style="max-height: 100%; object-fit: contain;" loading="lazy" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\\'http://www.w3.org/2000/svg\\' width=\\'100\\' height=\\'100\\'><rect width=\\'100\\' height=\\'100\\' fill=\\'%23f8f9fa\\'/><text x=\\'50%\\' y=\\'50%\\' font-size=\\'12\\' text-anchor=\\'middle\\' fill=\\'%23adb5bd\\'>No Image</text></svg>'">
+        <div class="bg-body-tertiary" style="height: 220px; display: flex; align-items: center; justify-content: center; overflow: hidden; border-top-left-radius: var(--bs-card-inner-border-radius); border-top-right-radius: var(--bs-card-inner-border-radius); padding: 1rem;">
+          <img src="${p.imageLink}" alt="Product" class="img-fluid" style="max-height: 100%; object-fit: contain;" loading="lazy" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\\'http://www.w3.org/2000/svg\\' width=\\'100\\' height=\\'100\\'><rect width=\\'100\\' height=\\'100\\' fill=\\'transparent\\'/><text x=\\'50%\\' y=\\'50%\\' font-size=\\'12\\' text-anchor=\\'middle\\' fill=\\'%23adb5bd\\'>No Image</text></svg>'">
         </div>
         <div class="card-body d-flex flex-column">
           ${p.brand ? `<small class="text-muted text-uppercase fw-bold mb-1" style="font-size: 0.7rem; letter-spacing: 0.5px;">${p.brand}</small>` : ""}
