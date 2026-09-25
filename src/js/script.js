@@ -403,8 +403,8 @@ function renderProducts(products, append = false) {
       p.salePrice && parseFloat(p.salePrice) < parseFloat(p.price);
 
     let priceHtml = hasDiscount
-      ? `<span class="sale-price">৳${p.salePrice}</span><span class="original-price">৳${p.price}</span>`
-      : `<span class="regular-price">৳${p.price || "N/A"}</span>`;
+      ? `<span class="sale-price">${p.salePrice}</span><span class="original-price"><i class="fa-solid fa-bangladeshi-taka-sign"></i> ${p.price}</span>`
+      : `<span class="regular-price"><i class="fa-solid fa-bangladeshi-taka-sign"></i> ${p.price || "N/A"}</span>`;
     const availClass = p.availability.toLowerCase().includes("in stock")
       ? "in-stock"
       : "";
@@ -423,7 +423,7 @@ function renderProducts(products, append = false) {
             </div>
             <div>
               <div class="price-row">${priceHtml}</div>
-              <a href="${p.link}" target="_blank" class="btn-view" rel="noopener noreferrer">View Product ↗</a>
+              <a href="${p.link}" target="_blank" class="btn-view" rel="noopener noreferrer">View Product <i class="fa-solid fa-arrow-up-right-from-square"></i></a>
             </div>
           </div>
         `;
