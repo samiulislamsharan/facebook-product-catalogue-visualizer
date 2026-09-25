@@ -79,14 +79,28 @@ async function fetchFeedFromUrl() {
       if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
       return asBuffer ? await res.arrayBuffer() : await res.text();
     } catch (err) {
-      console.warn("Direct fetch failed, trying CORS proxy fallback...", err);
-      const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(url)}`;
-      const proxyRes = await fetch(proxyUrl);
-      if (!proxyRes.ok)
-        throw new Error(
-          "Proxy fetch failed. Ensure the link is publicly accessible.",
-        );
-      return asBuffer ? await proxyRes.arrayBuffer() : await proxyRes.text();
+      console.warn("Direct fetch failed, trying CORS proxy fallbacks...", err);
+      const proxies = [
+        `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+        `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
+      ];
+
+      for (const proxyUrl of proxies) {
+        try {
+          console.log(`Trying proxy: ${proxyUrl}`);
+          const proxyRes = await fetch(proxyUrl);
+          if (proxyRes.ok) {
+            return asBuffer
+              ? await proxyRes.arrayBuffer()
+              : await proxyRes.text();
+          }
+        } catch (e) {
+          console.warn(`Proxy ${proxyUrl} failed.`, e);
+        }
+      }
+      throw new Error(
+        "Proxy fetch failed. Ensure the link is publicly accessible.",
+      );
     }
   }
 
