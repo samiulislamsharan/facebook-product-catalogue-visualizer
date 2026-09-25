@@ -13,11 +13,14 @@ function setLoadingState(isLoading, sourceName = "") {
     fileLabel.style.opacity = "0.6";
     document.getElementById("fileName").textContent =
       `Loading: ${sourceName}...`;
-    grid.innerHTML = `<div class="empty-state">
-      <h3>Processing Feed...</h3>
-      <p style="margin-top: 8px;" id="progressText">Downloading and parsing data. Please wait.</p>
-      <div class="progress-container">
-        <div class="progress-bar" id="progressBar"></div>
+    grid.innerHTML = `<div class="col-12">
+      <div class="text-center py-5 bg-white rounded shadow-sm text-muted">
+        <div class="spinner-border text-primary mb-3" role="status"></div>
+        <h3 id="progressText">Processing Feed...</h3>
+        <p class="mb-4">Downloading and parsing data. Please wait.</p>
+        <div class="progress mx-auto" style="max-width: 300px; height: 12px;">
+          <div class="progress-bar progress-bar-striped progress-bar-animated bg-primary" id="progressBar" style="width: 100%"></div>
+        </div>
       </div>
     </div>`;
   } else {
@@ -38,14 +41,16 @@ function updateProgress(loaded, total) {
     let percent = Math.round((loaded / total) * 100);
     percent = Math.min(100, Math.max(0, percent));
     progressBar.style.width = `${percent}%`;
-    progressBar.style.animation = "none";
+    progressBar.classList.remove(
+      "progress-bar-animated",
+      "progress-bar-striped",
+    );
     progressText.textContent = `Downloading: ${percent}%`;
   } else {
-    // If total is missing, or loaded exceeds total (happens when the browser transparently decompresses gzip)
     const mb = (loaded / (1024 * 1024)).toFixed(2);
     progressText.textContent = `Downloading: ${mb} MB`;
-    progressBar.style.width = "30%";
-    progressBar.style.animation = "loadingProgress 1.5s infinite ease-in-out";
+    progressBar.style.width = "100%";
+    progressBar.classList.add("progress-bar-animated", "progress-bar-striped");
   }
 }
 
@@ -83,7 +88,7 @@ document
         alert("Unsupported file format.");
         setLoadingState(false, "Import failed");
       }
-    }, 100); // Small timeout to allow UI to render loading state
+    }, 100);
   });
 
 /* --- INPUT 2: FETCH FROM URL --- */
@@ -94,7 +99,7 @@ async function fetchFeedFromUrl() {
     return;
   }
 
-  let fileExt = "xml"; // Default assumption
+  let fileExt = "xml";
   const cleanedPath = rawUrl.split("?")[0].toLowerCase();
   if (cleanedPath.endsWith(".csv")) fileExt = "csv";
   if (cleanedPath.endsWith(".xlsx") || cleanedPath.endsWith(".xls"))
@@ -104,7 +109,6 @@ async function fetchFeedFromUrl() {
     cleanedPath.length > 40 ? "..." + cleanedPath.slice(-35) : cleanedPath;
   setLoadingState(true, displayUrlName);
 
-  // Helper to fetch directly, or use a public proxy if CORS blocks it
   async function smartFetch(url, asBuffer = false) {
     async function readWithProgress(res) {
       const contentLength = res.headers.get("Content-Length");
@@ -169,7 +173,6 @@ async function fetchFeedFromUrl() {
       const xmlText = await smartFetch(rawUrl, false);
       parseXMLFeed(xmlText);
     } else if (fileExt === "csv") {
-      // Read CSV as text, but convert to buffer for SheetJS consistency
       const csvText = await smartFetch(rawUrl, false);
       const encoder = new TextEncoder();
       parseSpreadsheetFeed(encoder.encode(csvText));
@@ -185,7 +188,7 @@ async function fetchFeedFromUrl() {
     );
     setLoadingState(false, "Import failed");
     document.getElementById("productsGrid").innerHTML =
-      `<div class="empty-state"><h3>Import Failed</h3><p style="margin-top: 8px;">Could not fetch remote URL. Check network logs or try saving the file locally.</p></div>`;
+      `<div class="col-12"><div class="text-center py-5 bg-white rounded shadow-sm text-danger"><i class="fa-solid fa-triangle-exclamation fa-3x mb-3"></i><h3>Import Failed</h3><p>Could not fetch remote URL. Check network logs or try saving the file locally.</p></div></div>`;
   }
 }
 
@@ -309,7 +312,10 @@ function processAndRender(rawData) {
 /* --- RENDERING & UI --- */
 function buildCategoryTree(counts) {
   const treeContainer = document.getElementById("categoryTree");
-  treeContainer.innerHTML = `<li class="category-item active" data-path="All" onclick="filterCategory('All')"><span>All Products</span><span class="badge" id="badgeAll">${allProducts.length}</span></li>`;
+  treeContainer.innerHTML = `<li class="list-group-item d-flex justify-content-between align-items-center active list-group-item-action" data-path="All" onclick="filterCategory('All')" style="cursor:pointer; border-radius: 6px; margin-bottom: 2px;">
+    All Products
+    <span class="badge bg-light text-dark rounded-pill" id="badgeAll">${allProducts.length}</span>
+  </li>`;
 
   const sortedPaths = Object.keys(counts).sort();
   sortedPaths.forEach((path) => {
@@ -318,10 +324,14 @@ function buildCategoryTree(counts) {
     const displayName = parts[parts.length - 1];
 
     const li = document.createElement("li");
-    li.className = `category-item depth-${depth}`;
+    li.className = `list-group-item d-flex justify-content-between align-items-center list-group-item-action`;
+    li.style.cursor = "pointer";
+    li.style.borderRadius = "6px";
+    li.style.marginBottom = "2px";
+    li.style.paddingLeft = `${1 + depth * 1.5}rem`;
     li.setAttribute("data-path", path);
     li.onclick = () => filterCategory(path);
-    li.innerHTML = `<span>${displayName}</span><span class="badge">${counts[path]}</span>`;
+    li.innerHTML = `<span>${displayName}</span><span class="badge bg-secondary rounded-pill category-badge">${counts[path]}</span>`;
     treeContainer.appendChild(li);
   });
 }
@@ -342,13 +352,25 @@ function handleSearch() {
 
 function filterCategory(path) {
   activeFilter = path;
-  const items = document.querySelectorAll(".category-item");
+  const items = document.querySelectorAll("#categoryTree li");
   items.forEach((item) => {
     const itemPath = item.getAttribute("data-path");
+    const badge = item.querySelector(".badge");
     if ((path === "All" && itemPath === "All") || itemPath === path) {
       item.classList.add("active");
+      if (badge) {
+        badge.classList.remove("bg-secondary");
+        badge.classList.add("bg-light", "text-dark");
+      }
     } else {
       item.classList.remove("active");
+      if (badge && itemPath !== "All") {
+        badge.classList.remove("bg-light", "text-dark");
+        badge.classList.add("bg-secondary");
+      } else if (badge && itemPath === "All") {
+        badge.classList.remove("bg-light", "text-dark");
+        badge.classList.add("bg-secondary");
+      }
     }
   });
 
@@ -377,7 +399,7 @@ function applyFilters() {
     });
   }
 
-  renderLimit = 50; // Reset pagination for new filters
+  renderLimit = 50;
   renderProducts(filtered, false);
 }
 
@@ -387,7 +409,7 @@ function renderProducts(products, append = false) {
   if (!append) {
     grid.innerHTML = "";
     if (products.length === 0) {
-      grid.innerHTML = `<div class="empty-state"><h3>No matching items</h3><p style="margin-top: 8px;">Try selecting a different category filter or adjusting your search.</p></div>`;
+      grid.innerHTML = `<div class="col-12"><div class="text-center py-5 bg-white rounded shadow-sm text-muted"><i class="fa-solid fa-magnifying-glass fa-3x mb-3 opacity-50"></i><h3>No matching items</h3><p>Try selecting a different category filter or adjusting your search.</p></div></div>`;
       return;
     }
   }
@@ -397,42 +419,44 @@ function renderProducts(products, append = false) {
   const itemsToRender = products.slice(startIndex, renderLimit);
 
   itemsToRender.forEach((p) => {
-    const card = document.createElement("div");
-    card.className = "product-card";
+    const col = document.createElement("div");
+    col.className = "col-12 col-sm-6 col-lg-4 col-xxl-3 d-flex";
+
     const hasDiscount =
       p.salePrice && parseFloat(p.salePrice) < parseFloat(p.price);
 
     let priceHtml = hasDiscount
-      ? `<span class="sale-price">${p.salePrice}</span><span class="original-price"><i class="fa-solid fa-bangladeshi-taka-sign"></i> ${p.price}</span>`
-      : `<span class="regular-price"><i class="fa-solid fa-bangladeshi-taka-sign"></i> ${p.price || "N/A"}</span>`;
-    const availClass = p.availability.toLowerCase().includes("in stock")
-      ? "in-stock"
-      : "";
+      ? `<span class="text-danger fw-bold fs-5 me-2">${p.salePrice}</span><span class="text-muted text-decoration-line-through small"><i class="fa-solid fa-bangladeshi-taka-sign"></i> ${p.price}</span>`
+      : `<span class="fw-bold fs-5"><i class="fa-solid fa-bangladeshi-taka-sign"></i> ${p.price || "N/A"}</span>`;
 
-    card.innerHTML = `
-          <div class="product-img-container">
-            <img class="product-img" src="${p.imageLink}" alt="Product Image" loading="lazy" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\\'http://www.w3.org/2000/svg\\' width=\\'100\\' height=\\'100\\'><rect width=\\'100\\' height=\\'100\\' fill=\\'%23eee\\'/><text x=\\'50%\\' y=\\'50%\\' font-size=\\'12\\' text-anchor=\\'middle\\' fill=\\'%23aaa\\'>No Image</text></svg>'">
-            <span class="availability-tag ${availClass}">${p.availability}</span>
+    const availBadge = p.availability.toLowerCase().includes("in stock")
+      ? `<span class="badge bg-success position-absolute top-0 end-0 m-2 shadow-sm">In Stock</span>`
+      : `<span class="badge bg-danger position-absolute top-0 end-0 m-2 shadow-sm">${p.availability}</span>`;
+
+    col.innerHTML = `
+      <div class="card shadow-sm w-100 border-0 h-100 d-flex flex-column position-relative">
+        ${availBadge}
+        <div style="height: 220px; background-color: #f8f9fa; display: flex; align-items: center; justify-content: center; overflow: hidden; border-top-left-radius: var(--bs-card-inner-border-radius); border-top-right-radius: var(--bs-card-inner-border-radius); padding: 1rem;">
+          <img src="${p.imageLink}" alt="Product" class="img-fluid" style="max-height: 100%; object-fit: contain;" loading="lazy" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\\'http://www.w3.org/2000/svg\\' width=\\'100\\' height=\\'100\\'><rect width=\\'100\\' height=\\'100\\' fill=\\'%23f8f9fa\\'/><text x=\\'50%\\' y=\\'50%\\' font-size=\\'12\\' text-anchor=\\'middle\\' fill=\\'%23adb5bd\\'>No Image</text></svg>'">
+        </div>
+        <div class="card-body d-flex flex-column">
+          ${p.brand ? `<small class="text-muted text-uppercase fw-bold mb-1" style="font-size: 0.7rem; letter-spacing: 0.5px;">${p.brand}</small>` : ""}
+          <h6 class="card-title mb-1 text-truncate" title="${p.title}">${p.title || "Unnamed Product"}</h6>
+          <small class="text-muted mb-2 d-block text-truncate" style="font-size: 0.75rem;" title="${p.id}">ID: ${p.id || "N/A"}</small>
+          <small class="text-muted text-truncate d-block mb-3" style="font-size: 0.75rem;">${p.productType.replace(/ > /g, " • ")}</small>
+          
+          <div class="mt-auto pt-3 border-top">
+            <div class="mb-3">${priceHtml}</div>
+            <a href="${p.link}" target="_blank" class="btn btn-primary w-100 fw-bold" rel="noopener noreferrer">View Product <i class="fa-solid fa-arrow-up-right-from-square ms-1"></i></a>
           </div>
-          <div class="product-info">
-            <div>
-              ${p.brand ? `<div class="product-brand">${p.brand}</div>` : ""}
-              <div class="product-title" title="${p.title}">${p.title || "Unnamed Product"}</div>
-              <div class="product-id" title="${p.id}">${p.id || "N/A"}</div>
-              <div class="product-category-path">${p.productType.replace(/ > /g, " • ")}</div>
-            </div>
-            <div>
-              <div class="price-row">${priceHtml}</div>
-              <a href="${p.link}" target="_blank" class="btn-view" rel="noopener noreferrer">View Product <i class="fa-solid fa-arrow-up-right-from-square"></i></a>
-            </div>
-          </div>
-        `;
-    fragment.appendChild(card);
+        </div>
+      </div>
+    `;
+    fragment.appendChild(col);
   });
 
   grid.appendChild(fragment);
 
-  // Re-attach intersection observer for infinite scroll
   if (scrollObserver) scrollObserver.disconnect();
 
   if (renderLimit < products.length) {

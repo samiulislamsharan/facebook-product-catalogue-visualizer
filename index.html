@@ -33,64 +33,89 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.3.1/css/all.css"
     integrity="sha512-x9WwyMYBnlXMNQ6kQ/Lyzu1NqIhLQKL5Oq6xByfXuRj7s9CskyCbLv/1IjqzJmXwFXWr0ov6jBV7Qbc0hh9nHg=="
     crossorigin="anonymous" referrerpolicy="no-referrer">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.8/css/bootstrap.css"
+    integrity="sha512-zylce7fP6h4usg536JBTRj2rt7q22Z0qicHSlgSK53Irtfkz37ate3KCQ59du+aXZV6R3yyL2X1LyGKBEUMZaw=="
+    crossorigin="anonymous" referrerpolicy="no-referrer">
 
   <link rel="stylesheet" href="./src/css/style.css">
 </head>
-<body>
+<body class="bg-light">
 
-  <header>
-    <div class="header-top">
-      <h1>🛍️ Multi-Format Visualizer</h1>
-      <span class="file-name" id="fileName">No feed loaded</span>
-    </div>
-
-    <div class="upload-controls">
-      <div class="file-upload-box">
-        <label for="fileInput" class="btn" id="fileBtnLabel">Upload Local File</label>
-        <input type="file" id="fileInput" accept=".xml,.csv,.xlsx,.xls" />
-      </div>
-
-      <span class="divider">OR</span>
-
-      <div class="url-upload-box">
-        <input type="url" id="urlInput" class="url-input" placeholder="Paste feed URL (.xml, .csv, .xlsx)..." />
-        <button class="btn" id="fetchUrlBtn" onclick="fetchFeedFromUrl()">Import Link</button>
-      </div>
+  <header class="navbar navbar-dark bg-primary shadow-sm mb-4 py-3">
+    <div class="container-fluid px-4">
+      <span class="navbar-brand mb-0 h2 fw-bold"><i class="fa-solid fa-bag-shopping me-2"></i> Multi-Format Visualizer</span>
+      <span class="text-light" id="fileName">No feed loaded</span>
     </div>
   </header>
 
-  <div class="dashboard">
-    <aside class="sidebar">
-      <div class="metric-box">
-        <div class="metric-number" id="totalCount">0</div>
-        <div class="metric-label">Total Products</div>
-      </div>
-      
-      <div class="search-box" style="margin-bottom: 20px;">
-        <input type="text" id="searchInput" class="url-input" style="width: 100%; box-sizing: border-box;" placeholder="Search by title or ID..." oninput="handleSearch()" />
-      </div>
+  <div class="container-fluid px-4 mb-4">
+    <div class="card shadow-sm border-0">
+      <div class="card-body d-flex flex-wrap align-items-center gap-3">
+        <div class="d-flex align-items-center gap-2">
+          <label for="fileInput" class="btn btn-primary m-0 px-4" id="fileBtnLabel">
+            <i class="fa-solid fa-file-arrow-up me-2"></i>Upload Local File
+          </label>
+          <input type="file" id="fileInput" accept=".xml,.csv,.xlsx,.xls" class="d-none" />
+        </div>
 
-      <div class="filter-box">
-        <h3>Categories</h3>
-        <ul class="category-tree" id="categoryTree">
-          <li class="category-item active" onclick="filterCategory('All')">
-            <span>All Products</span>
-            <span class="badge" id="badgeAll">0</span>
-          </li>
-        </ul>
-      </div>
-    </aside>
+        <span class="text-muted fw-bold small text-uppercase mx-2">OR</span>
 
-    <main class="products-grid" id="productsGrid">
-      <div class="empty-state">
-        <h3>No products loaded</h3>
-        <p style="margin-top: 8px;">Upload a file or paste a direct feed URL to begin.</p>
+        <div class="d-flex flex-grow-1 gap-2">
+          <input type="url" id="urlInput" class="form-control" placeholder="Paste feed URL (.xml, .csv, .xlsx)..." />
+          <button class="btn btn-outline-primary text-nowrap px-4" id="fetchUrlBtn" onclick="fetchFeedFromUrl()">
+            <i class="fa-solid fa-cloud-arrow-down me-2"></i>Import Link
+          </button>
+        </div>
       </div>
-    </main>
+    </div>
+  </div>
+
+  <div class="container-fluid px-4">
+    <div class="row">
+      <aside class="col-lg-3 col-md-4 mb-4">
+        <div class="card shadow-sm border-0 mb-3">
+          <div class="card-body text-center py-4">
+            <h2 class="display-4 text-primary fw-bold mb-0" id="totalCount">0</h2>
+            <p class="text-muted mb-0 text-uppercase small fw-bold mt-2">Total Products</p>
+          </div>
+        </div>
+
+        <div class="card shadow-sm border-0 mb-3">
+          <div class="card-body">
+            <div class="mb-4">
+              <input type="text" id="searchInput" class="form-control form-control-lg"
+                placeholder="Search by title or ID..." oninput="handleSearch()" />
+            </div>
+            <h5 class="card-title mb-3 fw-bold">Categories</h5>
+            <ul class="list-group list-group-flush" id="categoryTree">
+              <li class="list-group-item d-flex justify-content-between align-items-center active list-group-item-action" data-path="All" onclick="filterCategory('All')" style="cursor:pointer; border-radius: 6px;">
+                All Products
+                <span class="badge bg-light text-dark rounded-pill" id="badgeAll">0</span>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </aside>
+
+      <main class="col-lg-9 col-md-8">
+        <div class="row g-4" id="productsGrid">
+          <div class="col-12">
+            <div class="text-center py-5 text-muted bg-white rounded shadow-sm">
+              <i class="fa-solid fa-box-open fa-4x mb-3 text-secondary opacity-50"></i>
+              <h3>No products loaded</h3>
+              <p>Upload a file or paste a direct feed URL to begin.</p>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
   </div>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.3.1/js/all.js"
     integrity="sha512-YbiNgTNv2GVfwJwqGr9Xv9xWzPIEwaDOv3f2S6HFbRVeo/xuM87nKqkmBPctPP3sbvxv3EpNIRss+3gjEJbVrA=="
+    crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.8/js/bootstrap.js"
+    integrity="sha512-GKxQGmCBqm3YHCZTdqD3Bvsz+AHRObqztq6xDo+68527RxgVw7wF1TR5ZSBvtWiz5qzpOzUGGvxJbT/6UzzSOQ=="
     crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   <script src="./src/js/script.js"></script>
 </body>
