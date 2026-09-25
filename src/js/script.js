@@ -271,6 +271,7 @@ function parseSpreadsheetFeed(buffer) {
 function processAndRender(rawData) {
   allProducts = [];
   const categoryCounts = {};
+  const brandsSet = new Set();
 
   rawData.forEach((item) => {
     const cleanPrice = item.price.replace(/[^0-9.]/g, "");
@@ -287,6 +288,10 @@ function processAndRender(rawData) {
       currentPath += (index === 0 ? "" : " > ") + cat;
       categoryCounts[currentPath] = (categoryCounts[currentPath] || 0) + 1;
     });
+
+    if (item.brand) {
+      brandsSet.add(item.brand.trim());
+    }
 
     allProducts.push({
       id: item.id,
@@ -306,7 +311,32 @@ function processAndRender(rawData) {
   document.getElementById("badgeAll").textContent = allProducts.length;
 
   buildCategoryTree(categoryCounts);
+  buildBrandList(Array.from(brandsSet).sort((a, b) => a.localeCompare(b)));
   filterCategory("All");
+}
+
+function buildBrandList(brands) {
+  const container = document.getElementById("brandsList");
+  if (!container) return;
+
+  if (!brands.length) {
+    container.innerHTML = `<span class="text-muted">No brands found</span>`;
+    return;
+  }
+
+  let html = "";
+  brands.forEach((brand, idx) => {
+    const escapedBrand = brand.replace(/"/g, "&quot;");
+    html += `
+      <div class="form-check mb-1">
+        <input class="form-check-input brand-filter-cb" type="checkbox" value="${escapedBrand}" id="brandCb_${idx}" onchange="applyFilters()">
+        <label class="form-check-label text-truncate w-100" title="${escapedBrand}" for="brandCb_${idx}">
+          ${brand}
+        </label>
+      </div>
+    `;
+  });
+  container.innerHTML = html;
 }
 
 /* --- RENDERING & UI --- */
@@ -396,6 +426,80 @@ function applyFilters() {
       const idMatch =
         p.id && p.id.toString().toLowerCase().includes(searchQuery);
       return titleMatch || idMatch;
+    });
+  }
+
+  // --- ADVANCED FILTERS ---
+  const inStockOnly = document.getElementById("inStockOnly")?.checked;
+  const minPrice = parseFloat(document.getElementById("minPrice")?.value);
+  const maxPrice = parseFloat(document.getElementById("maxPrice")?.value);
+  const selectedBrands = Array.from(
+    document.querySelectorAll(".brand-filter-cb:checked"),
+  ).map((cb) => cb.value);
+
+  if (
+    inStockOnly ||
+    !isNaN(minPrice) ||
+    !isNaN(maxPrice) ||
+    selectedBrands.length > 0
+  ) {
+    filtered = filtered.filter((p) => {
+      // 1. Availability
+      if (inStockOnly && !p.availability.toLowerCase().includes("in stock"))
+        return false;
+
+      // 2. Price Range
+      const price = parseFloat(p.salePrice || p.price);
+      if (!isNaN(price)) {
+        if (!isNaN(minPrice) && price < minPrice) return false;
+        if (!isNaN(maxPrice) && price > maxPrice) return false;
+      }
+
+      // 3. Brands
+      if (selectedBrands.length > 0) {
+        if (!p.brand || !selectedBrands.includes(p.brand.trim())) return false;
+      }
+
+      return true;
+    });
+  }
+
+  // --- SORTING ---
+  const sortSelect = document.getElementById("sortSelect");
+  const sortValue = sortSelect ? sortSelect.value : "default";
+
+  if (sortValue !== "default") {
+    // We clone the filtered array before sorting to avoid mutating the source allProducts if there were no filters applied
+    if (filtered === allProducts) {
+      filtered = [...allProducts];
+    }
+
+    filtered.sort((a, b) => {
+      if (sortValue === "price-asc") {
+        return (
+          (parseFloat(a.salePrice || a.price) || 0) -
+          (parseFloat(b.salePrice || b.price) || 0)
+        );
+      } else if (sortValue === "price-desc") {
+        return (
+          (parseFloat(b.salePrice || b.price) || 0) -
+          (parseFloat(a.salePrice || a.price) || 0)
+        );
+      } else if (sortValue === "discount-desc") {
+        const getDiscount = (p) => {
+          if (!p.salePrice || !p.price) return 0;
+          const s = parseFloat(p.salePrice);
+          const r = parseFloat(p.price);
+          if (r <= s || r === 0) return 0;
+          return (r - s) / r;
+        };
+        return getDiscount(b) - getDiscount(a);
+      } else if (sortValue === "title-asc") {
+        return (a.title || "").localeCompare(b.title || "");
+      } else if (sortValue === "title-desc") {
+        return (b.title || "").localeCompare(a.title || "");
+      }
+      return 0;
     });
   }
 
