@@ -13,13 +13,39 @@ function setLoadingState(isLoading, sourceName = "") {
     fileLabel.style.opacity = "0.6";
     document.getElementById("fileName").textContent =
       `Loading: ${sourceName}...`;
-    grid.innerHTML = `<div class="empty-state"><h3>Processing Feed...</h3><p style="margin-top: 8px;">Downloading and parsing data. Please wait.</p></div>`;
+    grid.innerHTML = `<div class="empty-state">
+      <h3>Processing Feed...</h3>
+      <p style="margin-top: 8px;" id="progressText">Downloading and parsing data. Please wait.</p>
+      <div class="progress-container">
+        <div class="progress-bar" id="progressBar"></div>
+      </div>
+    </div>`;
   } else {
     fetchBtn.disabled = false;
     fileLabel.style.pointerEvents = "auto";
     fileLabel.style.opacity = "1";
     if (sourceName)
       document.getElementById("fileName").textContent = sourceName;
+  }
+}
+
+function updateProgress(loaded, total) {
+  const progressBar = document.getElementById("progressBar");
+  const progressText = document.getElementById("progressText");
+  if (!progressBar || !progressText) return;
+
+  if (total && loaded <= total) {
+    let percent = Math.round((loaded / total) * 100);
+    percent = Math.min(100, Math.max(0, percent));
+    progressBar.style.width = `${percent}%`;
+    progressBar.style.animation = "none";
+    progressText.textContent = `Downloading: ${percent}%`;
+  } else {
+    // If total is missing, or loaded exceeds total (happens when the browser transparently decompresses gzip)
+    const mb = (loaded / (1024 * 1024)).toFixed(2);
+    progressText.textContent = `Downloading: ${mb} MB`;
+    progressBar.style.width = "30%";
+    progressBar.style.animation = "loadingProgress 1.5s infinite ease-in-out";
   }
 }
 
@@ -35,6 +61,9 @@ document
       const fileExt = file.name.split(".").pop().toLowerCase();
       if (fileExt === "xml") {
         const reader = new FileReader();
+        reader.onprogress = (e) => {
+          if (e.lengthComputable) updateProgress(e.loaded, e.total);
+        };
         reader.onload = (e) => {
           parseXMLFeed(e.target.result);
           setLoadingState(false, file.name);
@@ -42,6 +71,9 @@ document
         reader.readAsText(file);
       } else if (["csv", "xlsx", "xls"].includes(fileExt)) {
         const reader = new FileReader();
+        reader.onprogress = (e) => {
+          if (e.lengthComputable) updateProgress(e.loaded, e.total);
+        };
         reader.onload = (e) => {
           parseSpreadsheetFeed(e.target.result);
           setLoadingState(false, file.name);
@@ -74,10 +106,40 @@ async function fetchFeedFromUrl() {
 
   // Helper to fetch directly, or use a public proxy if CORS blocks it
   async function smartFetch(url, asBuffer = false) {
+    async function readWithProgress(res) {
+      const contentLength = res.headers.get("Content-Length");
+      const total = contentLength ? parseInt(contentLength, 10) : null;
+      let loaded = 0;
+
+      const reader = res.body.getReader();
+      const chunks = [];
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        chunks.push(value);
+        loaded += value.length;
+        updateProgress(loaded, total);
+      }
+
+      const completeBuffer = new Uint8Array(loaded);
+      let offset = 0;
+      for (const chunk of chunks) {
+        completeBuffer.set(chunk, offset);
+        offset += chunk.length;
+      }
+
+      if (asBuffer) {
+        return completeBuffer.buffer;
+      } else {
+        return new TextDecoder("utf-8").decode(completeBuffer);
+      }
+    }
+
     try {
       const res = await fetch(url);
       if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
-      return asBuffer ? await res.arrayBuffer() : await res.text();
+      return await readWithProgress(res);
     } catch (err) {
       console.warn("Direct fetch failed, trying CORS proxy fallbacks...", err);
       const proxies = [
@@ -90,9 +152,7 @@ async function fetchFeedFromUrl() {
           console.log(`Trying proxy: ${proxyUrl}`);
           const proxyRes = await fetch(proxyUrl);
           if (proxyRes.ok) {
-            return asBuffer
-              ? await proxyRes.arrayBuffer()
-              : await proxyRes.text();
+            return await readWithProgress(proxyRes);
           }
         } catch (e) {
           console.warn(`Proxy ${proxyUrl} failed.`, e);
