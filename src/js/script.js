@@ -293,6 +293,13 @@ function processAndRender(rawData) {
       brandsSet.add(item.brand.trim());
     }
 
+    const issues = [];
+    if (!item.id) issues.push("Missing ID");
+    if (!item.title) issues.push("Missing Title");
+    if (!item.link) issues.push("Missing Link");
+    if (!item.imageLink) issues.push("Missing Image");
+    if (!cleanPrice) issues.push("Missing Price");
+
     allProducts.push({
       id: item.id,
       title: item.title,
@@ -304,11 +311,25 @@ function processAndRender(rawData) {
       categories,
       availability: item.availability,
       brand: item.brand,
+      issues: issues,
     });
   });
 
   document.getElementById("totalCount").textContent = allProducts.length;
   document.getElementById("badgeAll").textContent = allProducts.length;
+
+  const productsWithIssues = allProducts.filter(
+    (p) => p.issues.length > 0,
+  ).length;
+  const diagCard = document.getElementById("diagnosticsCard");
+  if (diagCard) {
+    if (productsWithIssues > 0) {
+      document.getElementById("issueCount").textContent = productsWithIssues;
+      diagCard.classList.remove("d-none");
+    } else {
+      diagCard.classList.add("d-none");
+    }
+  }
 
   buildCategoryTree(categoryCounts);
   buildBrandList(Array.from(brandsSet).sort((a, b) => a.localeCompare(b)));
@@ -411,14 +432,19 @@ let renderLimit = 50;
 let scrollObserver = null;
 
 function applyFilters() {
-  let filtered =
-    activeFilter === "All"
-      ? allProducts
-      : allProducts.filter(
-          (p) =>
-            p.productType === activeFilter ||
-            p.productType.startsWith(activeFilter + " > "),
-        );
+  let filtered = [];
+
+  if (activeFilter === "ISSUES") {
+    filtered = allProducts.filter((p) => p.issues && p.issues.length > 0);
+  } else if (activeFilter === "All") {
+    filtered = allProducts;
+  } else {
+    filtered = allProducts.filter(
+      (p) =>
+        p.productType === activeFilter ||
+        p.productType.startsWith(activeFilter + " > "),
+    );
+  }
 
   if (searchQuery) {
     filtered = filtered.filter((p) => {
@@ -537,9 +563,15 @@ function renderProducts(products, append = false) {
       ? `<span class="badge bg-success position-absolute top-0 end-0 m-2 shadow-sm">In Stock</span>`
       : `<span class="badge bg-danger position-absolute top-0 end-0 m-2 shadow-sm">${p.availability}</span>`;
 
+    const issuesBadge =
+      p.issues && p.issues.length > 0
+        ? `<span class="badge bg-warning text-dark position-absolute top-0 start-0 m-2 shadow-sm" title="Issues: ${p.issues.join(", ")}" style="cursor: help;"><i class="fa-solid fa-triangle-exclamation me-1"></i>${p.issues.length}</span>`
+        : "";
+
     col.innerHTML = `
       <div class="card shadow-sm w-100 border-0 h-100 d-flex flex-column position-relative">
         ${availBadge}
+        ${issuesBadge}
         <div style="height: 220px; background-color: #f8f9fa; display: flex; align-items: center; justify-content: center; overflow: hidden; border-top-left-radius: var(--bs-card-inner-border-radius); border-top-right-radius: var(--bs-card-inner-border-radius); padding: 1rem;">
           <img src="${p.imageLink}" alt="Product" class="img-fluid" style="max-height: 100%; object-fit: contain;" loading="lazy" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\\'http://www.w3.org/2000/svg\\' width=\\'100\\' height=\\'100\\'><rect width=\\'100\\' height=\\'100\\' fill=\\'%23f8f9fa\\'/><text x=\\'50%\\' y=\\'50%\\' font-size=\\'12\\' text-anchor=\\'middle\\' fill=\\'%23adb5bd\\'>No Image</text></svg>'">
         </div>
