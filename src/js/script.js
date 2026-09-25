@@ -355,6 +355,9 @@ function filterCategory(path) {
   applyFilters();
 }
 
+let renderLimit = 50;
+let scrollObserver = null;
+
 function applyFilters() {
   let filtered =
     activeFilter === "All"
@@ -374,19 +377,26 @@ function applyFilters() {
     });
   }
 
-  renderProducts(filtered);
+  renderLimit = 50; // Reset pagination for new filters
+  renderProducts(filtered, false);
 }
 
-function renderProducts(products) {
+function renderProducts(products, append = false) {
   const grid = document.getElementById("productsGrid");
-  grid.innerHTML = "";
 
-  if (products.length === 0) {
-    grid.innerHTML = `<div class="empty-state"><h3>No matching items</h3><p style="margin-top: 8px;">Try selecting a different category filter.</p></div>`;
-    return;
+  if (!append) {
+    grid.innerHTML = "";
+    if (products.length === 0) {
+      grid.innerHTML = `<div class="empty-state"><h3>No matching items</h3><p style="margin-top: 8px;">Try selecting a different category filter or adjusting your search.</p></div>`;
+      return;
+    }
   }
 
-  products.forEach((p) => {
+  const fragment = document.createDocumentFragment();
+  const startIndex = append ? renderLimit - 50 : 0;
+  const itemsToRender = products.slice(startIndex, renderLimit);
+
+  itemsToRender.forEach((p) => {
     const card = document.createElement("div");
     card.className = "product-card";
     const hasDiscount =
@@ -417,6 +427,22 @@ function renderProducts(products) {
             </div>
           </div>
         `;
-    grid.appendChild(card);
+    fragment.appendChild(card);
   });
+
+  grid.appendChild(fragment);
+
+  // Re-attach intersection observer for infinite scroll
+  if (scrollObserver) scrollObserver.disconnect();
+
+  if (renderLimit < products.length) {
+    const lastCard = grid.lastElementChild;
+    scrollObserver = new IntersectionObserver((entries) => {
+      if (entries[0].isIntersecting) {
+        renderLimit += 50;
+        renderProducts(products, true);
+      }
+    });
+    scrollObserver.observe(lastCard);
+  }
 }
