@@ -326,6 +326,20 @@ function buildCategoryTree(counts) {
   });
 }
 
+let searchQuery = "";
+let searchTimeout = null;
+
+function handleSearch() {
+  const input = document.getElementById("searchInput");
+  if (!input) return;
+
+  clearTimeout(searchTimeout);
+  searchTimeout = setTimeout(() => {
+    searchQuery = input.value.toLowerCase().trim();
+    applyFilters();
+  }, 300);
+}
+
 function filterCategory(path) {
   activeFilter = path;
   const items = document.querySelectorAll(".category-item");
@@ -338,13 +352,28 @@ function filterCategory(path) {
     }
   });
 
-  const filtered =
-    path === "All"
+  applyFilters();
+}
+
+function applyFilters() {
+  let filtered =
+    activeFilter === "All"
       ? allProducts
       : allProducts.filter(
           (p) =>
-            p.productType === path || p.productType.startsWith(path + " > "),
+            p.productType === activeFilter ||
+            p.productType.startsWith(activeFilter + " > "),
         );
+
+  if (searchQuery) {
+    filtered = filtered.filter((p) => {
+      const titleMatch = p.title && p.title.toLowerCase().includes(searchQuery);
+      const idMatch =
+        p.id && p.id.toString().toLowerCase().includes(searchQuery);
+      return titleMatch || idMatch;
+    });
+  }
+
   renderProducts(filtered);
 }
 
